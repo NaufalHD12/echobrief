@@ -1,0 +1,43 @@
+from fastapi import FastAPI
+from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+from sqlalchemy import text
+from app.core.database import engine
+from app.api.v1.topics import router as topics_router
+from app.api.v1.sources import router as sources_router
+from app.api.v1.articles import router as articles_router
+from app.api.v1.admin import router as admin_router
+
+load_dotenv()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    # Shutdown (if needed)
+
+app = FastAPI(
+    title="EchoBrief API",
+    description="API for generating podcast briefs from news articles",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Include routers
+app.include_router(topics_router, prefix="/api/v1")
+app.include_router(sources_router, prefix="/api/v1")
+app.include_router(articles_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to EchoBrief!"}
+
+
+@app.get("/health/db")
+async def health_db():
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
