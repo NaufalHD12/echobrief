@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import feedparser
-from fastapi import HTTPException
 from openai import OpenAI
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -69,6 +68,12 @@ class NewsAggregationService:
 
                 logger.debug(f"Entry {i}: Extracted - {article_dict['title'][:50]}...")
 
+                # Check for duplicates first to save LLM costs
+                if await self._is_duplicate(article_dict["url"]):
+                    logger.debug(f"Entry {i}: Skipped duplicate article")
+                    processed += 1
+                    continue
+
                 topic_id, generated_summary = await self._determine_topic_and_summary(
                     article_dict["title"], article_dict["summary_text"] or ""
                 )
@@ -91,17 +96,9 @@ class NewsAggregationService:
                         logger.info(
                             f"Entry {i}: Created article - {article_dict['title'][:50]}..."
                         )
-                    except HTTPException as e:
-                        if "already exists" in str(e):
-                            logger.debug(
-                                f"Entry {i}: Skipped duplicate article (detected during creation)"
-                            )
-                        else:
-                            logger.error(f"Entry {i}: Error creating article: {e}")
                     except Exception as e:
                         logger.error(
-                            f"Entry {i}: Unexpected error creating article: {e}",
-                            exc_info=True,
+                            f"Entry {i}: Error creating article: {e}", exc_info=True
                         )
                 else:
                     logger.warning(f"Entry {i}: AI processing failed or no topic found")

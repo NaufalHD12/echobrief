@@ -3,7 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ...core.auth import get_current_admin, get_current_user
 from ...core.database import get_session
+from ...models.users import User
 from ...schemas.common import ApiResponse
 from ...schemas.sources import (
     SourceCreate,
@@ -32,6 +34,7 @@ async def get_sources(
     service: Annotated[SourceService, Depends(get_source_service)],
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 10,
+    current_user: User = Depends(get_current_user)
 ) -> ApiResponse[SourceListResponse]:
     """
     Get paginated list of sources.
@@ -62,6 +65,7 @@ async def get_sources(
 async def get_source(
     source_id: Annotated[int, Path(description="Source ID")],
     service: Annotated[SourceService, Depends(get_source_service)],
+    current_user: User = Depends(get_current_user)
 ) -> ApiResponse[SourceResponse]:
     """
     Get source by ID.
@@ -80,11 +84,12 @@ async def get_source(
     response_model=ApiResponse[SourceResponse],
     status_code=201,
     summary="Create new source",
-    description="Create a new news source",
+    description="Create a new news source (admin only)",
 )
 async def create_source(
     source_data: SourceCreate,
     service: Annotated[SourceService, Depends(get_source_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[SourceResponse]:
     """
     Create a new source.
@@ -103,12 +108,13 @@ async def create_source(
     "/{source_id}",
     response_model=ApiResponse[SourceResponse],
     summary="Update source",
-    description="Update an existing source's information",
+    description="Update an existing source's information (admin only)",
 )
 async def update_source(
     source_id: Annotated[int, Path(description="Source ID")],
     source_data: SourceUpdate,
     service: Annotated[SourceService, Depends(get_source_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[SourceResponse]:
     """
     Update source information.
@@ -128,11 +134,12 @@ async def update_source(
     "/{source_id}",
     response_model=ApiResponse[None],
     summary="Delete source",
-    description="Delete a source by its ID",
+    description="Delete a source by its ID (admin only)",
 )
 async def delete_source(
     source_id: Annotated[int, Path(description="Source ID")],
     service: Annotated[SourceService, Depends(get_source_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """
     Delete a source.

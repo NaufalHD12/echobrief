@@ -3,7 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ...core.auth import get_current_admin, get_current_user
 from ...core.database import get_session
+from ...models.users import User
 from ...schemas.articles import (
     ArticleCreate,
     ArticleListResponse,
@@ -33,6 +35,7 @@ async def get_articles(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 10,
     topic_id: Annotated[int | None, Query(description="Filter by topic ID")] = None,
+    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[ArticleListResponse]:
     """
     Get paginated list of articles.
@@ -66,6 +69,7 @@ async def get_articles(
 async def get_article(
     article_id: Annotated[int, Path(description="Article ID")],
     service: Annotated[ArticleService, Depends(get_article_service)],
+    current_user: User = Depends(get_current_user)
 ) -> ApiResponse[ArticleResponse]:
     """
     Get article by ID.
@@ -84,11 +88,12 @@ async def get_article(
     response_model=ApiResponse[ArticleResponse],
     status_code=201,
     summary="Create new article",
-    description="Create a new article",
+    description="Create a new article (admin only)",
 )
 async def create_article(
     article_data: ArticleCreate,
     service: Annotated[ArticleService, Depends(get_article_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[ArticleResponse]:
     """
     Create a new article.
@@ -109,12 +114,13 @@ async def create_article(
     "/{article_id}",
     response_model=ApiResponse[ArticleResponse],
     summary="Update article",
-    description="Update an existing article's information",
+    description="Update an existing article's information (admin only)",
 )
 async def update_article(
     article_id: Annotated[int, Path(description="Article ID")],
     article_data: ArticleUpdate,
     service: Annotated[ArticleService, Depends(get_article_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[ArticleResponse]:
     """
     Update article information.
@@ -136,11 +142,12 @@ async def update_article(
     "/{article_id}",
     response_model=ApiResponse[None],
     summary="Delete article",
-    description="Delete an article by its ID",
+    description="Delete an article by its ID (admin only)",
 )
 async def delete_article(
     article_id: Annotated[int, Path(description="Article ID")],
     service: Annotated[ArticleService, Depends(get_article_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """
     Delete an article.

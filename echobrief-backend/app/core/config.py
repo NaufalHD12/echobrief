@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = ""
 
+    JWT_SECRET_KEY: str = ""
+    JWT_ALGORITHM: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=False, extra="ignore"
     )

@@ -3,7 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ...core.auth import get_current_admin, get_current_user
 from ...core.database import get_session
+from ...models.users import User
 from ...schemas.common import ApiResponse
 from ...schemas.topics import TopicCreate, TopicListResponse, TopicResponse, TopicUpdate
 from ...services.topic_service import TopicService
@@ -27,6 +29,7 @@ async def get_topics(
     service: Annotated[TopicService, Depends(get_topic_service)],
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 10,
+    current_user: User = Depends(get_current_user)
 ) -> ApiResponse[TopicListResponse]:
     """
     Get paginated list of topics.
@@ -57,6 +60,7 @@ async def get_topics(
 async def get_topic(
     service: Annotated[TopicService, Depends(get_topic_service)],
     topic_id: Annotated[int, Path(description="Topic ID")],
+    current_user: User = Depends(get_current_user)
 ) -> ApiResponse[TopicResponse]:
     """
     Get topic by ID
@@ -78,6 +82,7 @@ async def get_topic(
 async def get_topic_by_slug(
     slug: Annotated[str, Path(description="Topic slug")],
     service: Annotated[TopicService, Depends(get_topic_service)],
+    current_user: User = Depends(get_current_user)
 ) -> ApiResponse[TopicResponse]:
     """
     Get topic by slug.
@@ -95,11 +100,12 @@ async def get_topic_by_slug(
     response_model=ApiResponse[TopicResponse],
     status_code=201,
     summary="Create new topic",
-    description="Create a new topic with name and slug",
+    description="Create a new topic with name and slug (admin only)",
 )
 async def create_topic(
     topic_data: TopicCreate,
     service: Annotated[TopicService, Depends(get_topic_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[TopicResponse]:
     """
     Create a new topic.
@@ -117,12 +123,13 @@ async def create_topic(
     "/{topic_id}",
     response_model=ApiResponse[TopicResponse],
     summary="Update topic",
-    description="Update an existing topic's information",
+    description="Update an existing topic's information (admin only)",
 )
 async def update_topic(
     topic_id: Annotated[int, Path(description="Topic ID")],
     topic_data: TopicUpdate,
     service: Annotated[TopicService, Depends(get_topic_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[TopicResponse]:
     """
     Update topic information.
@@ -141,11 +148,12 @@ async def update_topic(
     "/{topic_id}",
     response_model=ApiResponse[None],
     summary="Delete topic",
-    description="Delete a topic by its ID",
+    description="Delete a topic by its ID (admin only)",
 )
 async def delete_topic(
     topic_id: Annotated[int, Path(description="Topic ID")],
     service: Annotated[TopicService, Depends(get_topic_service)],
+    current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """
     Delete a topic.
