@@ -3,15 +3,15 @@ from datetime import timezone
 
 def validate_url(v):
     """Reusable URL validator"""
-    if not v.startswith(('http://', 'https://')):
-        raise ValueError('URL must be HTTP or HTTPS')
+    if not v.startswith(("http://", "https://")):
+        raise ValueError("URL must be HTTP or HTTPS")
     return v
 
 
 def validate_url_optional(v):
     """Reusable optional URL validator"""
-    if v is not None and not v.startswith(('http://', 'https://')):
-        raise ValueError('URL must be HTTP or HTTPS')
+    if v is not None and not v.startswith(("http://", "https://")):
+        raise ValueError("URL must be HTTP or HTTPS")
     return v
 
 

@@ -1,16 +1,18 @@
 import asyncio
 import logging
+
 from ..core.celery_app import celery_app
 from ..core.database import async_session, engine
 from ..services.news_aggregation_service import NewsAggregationService
 
 logger = logging.getLogger(__name__)
 
+
 @celery_app.task
 def aggregate_news_task():
     """Background task to aggregate news"""
     logger.info("=== CELERY TASK STARTED ===")
-    
+
     try:
         # Use asyncio.run() for fresh event loop in Celery context
         result = asyncio.run(_aggregate_async_wrapper())
@@ -22,6 +24,7 @@ def aggregate_news_task():
     finally:
         logger.info("=== CELERY TASK FINISHED ===")
 
+
 async def _aggregate_async_wrapper():
     """Wrapper for asyncio.run with proper cleanup"""
     try:
@@ -29,6 +32,7 @@ async def _aggregate_async_wrapper():
     finally:
         # Cleanup database connections
         await engine.dispose()
+
 
 async def _aggregate_async():
     """Run aggregation in async context with explicit transaction"""

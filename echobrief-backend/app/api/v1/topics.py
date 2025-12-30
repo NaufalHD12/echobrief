@@ -1,28 +1,27 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, Path
+
+from fastapi import APIRouter, Depends, Path, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from ...core.database import get_session
-from ...services.topic_service import TopicService
-from ...schemas.topics import (
-    TopicCreate,
-    TopicUpdate,
-    TopicResponse,
-    TopicListResponse
-)
 from ...schemas.common import ApiResponse
+from ...schemas.topics import TopicCreate, TopicListResponse, TopicResponse, TopicUpdate
+from ...services.topic_service import TopicService
 
 router = APIRouter(prefix="/topics", tags=["topics"])
 
+
 async def get_topic_service(
-    session: Annotated[AsyncSession, Depends(get_session)]
-    ) -> TopicService:
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> TopicService:
     return TopicService(session)
+
 
 @router.get(
     "/",
     response_model=ApiResponse[TopicListResponse],
     summary="Get list of topics",
-    description="Retrieve paginated list of all topics with optional filtering"
+    description="Retrieve paginated list of all topics with optional filtering",
 )
 async def get_topics(
     service: Annotated[TopicService, Depends(get_topic_service)],
@@ -44,19 +43,20 @@ async def get_topics(
             items=[TopicResponse(**topic.model_dump()) for topic in topics],
             total=total,
             page=page,
-            per_page=per_page
-        )
+            per_page=per_page,
+        ),
     )
-    
+
+
 @router.get(
     "/{topic_id}",
     response_model=ApiResponse[TopicResponse],
     summary="Get topic by ID",
-    description="Retrieve a specific topic by its ID"
+    description="Retrieve a specific topic by its ID",
 )
 async def get_topic(
     service: Annotated[TopicService, Depends(get_topic_service)],
-    topic_id: Annotated[int, Path(description="Topic ID")]
+    topic_id: Annotated[int, Path(description="Topic ID")],
 ) -> ApiResponse[TopicResponse]:
     """
     Get topic by ID
@@ -65,19 +65,19 @@ async def get_topic(
     """
     topic = await service.get_topic_by_id(topic_id)
     return ApiResponse(
-        message="Topic retrieved successfully",
-        data=TopicResponse(**topic.model_dump())
+        message="Topic retrieved successfully", data=TopicResponse(**topic.model_dump())
     )
+
 
 @router.get(
     "/slug/{slug}",
     response_model=ApiResponse[TopicResponse],
     summary="Get topic by slug",
-    description="Retrieve a specific topic by its slug"
+    description="Retrieve a specific topic by its slug",
 )
 async def get_topic_by_slug(
     slug: Annotated[str, Path(description="Topic slug")],
-    service: Annotated[TopicService, Depends(get_topic_service)]
+    service: Annotated[TopicService, Depends(get_topic_service)],
 ) -> ApiResponse[TopicResponse]:
     """
     Get topic by slug.
@@ -86,20 +86,20 @@ async def get_topic_by_slug(
     """
     topic = await service.get_topic_by_slug(slug)
     return ApiResponse(
-        message="Topic retrieved successfully",
-        data=TopicResponse(**topic.model_dump())
+        message="Topic retrieved successfully", data=TopicResponse(**topic.model_dump())
     )
+
 
 @router.post(
     "/",
     response_model=ApiResponse[TopicResponse],
     status_code=201,
     summary="Create new topic",
-    description="Create a new topic with name and slug"
+    description="Create a new topic with name and slug",
 )
 async def create_topic(
     topic_data: TopicCreate,
-    service: Annotated[TopicService, Depends(get_topic_service)]
+    service: Annotated[TopicService, Depends(get_topic_service)],
 ) -> ApiResponse[TopicResponse]:
     """
     Create a new topic.
@@ -109,20 +109,20 @@ async def create_topic(
     """
     topic = await service.create_topic(topic_data)
     return ApiResponse(
-        message="Topic created successfully",
-        data=TopicResponse(**topic.model_dump())
+        message="Topic created successfully", data=TopicResponse(**topic.model_dump())
     )
+
 
 @router.put(
     "/{topic_id}",
     response_model=ApiResponse[TopicResponse],
     summary="Update topic",
-    description="Update an existing topic's information"
+    description="Update an existing topic's information",
 )
 async def update_topic(
     topic_id: Annotated[int, Path(description="Topic ID")],
     topic_data: TopicUpdate,
-    service: Annotated[TopicService, Depends(get_topic_service)]
+    service: Annotated[TopicService, Depends(get_topic_service)],
 ) -> ApiResponse[TopicResponse]:
     """
     Update topic information.
@@ -133,19 +133,19 @@ async def update_topic(
     """
     topic = await service.update_topic(topic_id, topic_data)
     return ApiResponse(
-        message="Topic updated successfully",
-        data=TopicResponse(**topic.model_dump())
+        message="Topic updated successfully", data=TopicResponse(**topic.model_dump())
     )
+
 
 @router.delete(
     "/{topic_id}",
     response_model=ApiResponse[None],
     summary="Delete topic",
-    description="Delete a topic by its ID"
+    description="Delete a topic by its ID",
 )
 async def delete_topic(
     topic_id: Annotated[int, Path(description="Topic ID")],
-    service: Annotated[TopicService, Depends(get_topic_service)]
+    service: Annotated[TopicService, Depends(get_topic_service)],
 ) -> ApiResponse[None]:
     """
     Delete a topic.

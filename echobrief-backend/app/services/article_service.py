@@ -1,28 +1,28 @@
-from sqlmodel import select, func
-from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Sequence
+
 from fastapi import HTTPException
+from sqlmodel import func, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
 from ..models.articles import Article
 from ..models.sources import Source
 from ..models.topics import Topic
 from ..schemas.articles import ArticleCreate, ArticleUpdate
+
 
 class ArticleService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def get_articles(
-        self,
-        skip: int = 0,
-        limit: int = 10,
-        topic_id: int | None = None
+        self, skip: int = 0, limit: int = 10, topic_id: int | None = None
     ) -> tuple[Sequence[Article], int]:
         """Get paginated list of articles"""
         query = select(Article)
-        
+
         if topic_id is not None:
             query = query.where(Article.topic_id == topic_id)
-            
+
         query = query.offset(skip).limit(limit)
         result = await self.session.exec(query)
         articles = result.all()
@@ -60,7 +60,10 @@ class ArticleService:
         existing_result = await self.session.exec(existing_query)
         existing = existing_result.first()
         if existing:
-            raise HTTPException(status_code=400, detail=f"Article with URL '{article_data.url}' already exists")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Article with URL '{article_data.url}' already exists",
+            )
 
         article = Article(**article_data.model_dump())
         self.session.add(article)
@@ -68,7 +71,9 @@ class ArticleService:
         await self.session.refresh(article)
         return article
 
-    async def update_article(self, article_id: int, article_data: ArticleUpdate) -> Article:
+    async def update_article(
+        self, article_id: int, article_data: ArticleUpdate
+    ) -> Article:
         """Update existing article"""
         article = await self.get_article_by_id(article_id)
 
@@ -89,15 +94,14 @@ class ArticleService:
         # Check URL uniqueness if URL is being updated
         if "url" in update_data:
             existing_query = select(Article).where(
-                Article.url == update_data["url"],
-                Article.id != article_id
+                Article.url == update_data["url"], Article.id != article_id
             )
             existing_result = await self.session.exec(existing_query)
             existing = existing_result.first()
             if existing:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Article with URL '{update_data['url']}' already exists"
+                    detail=f"Article with URL '{update_data['url']}' already exists",
                 )
 
         article.sqlmodel_update(update_data)
