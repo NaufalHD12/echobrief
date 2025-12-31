@@ -1,11 +1,14 @@
+import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.v1.articles import router as articles_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.podcasts import router as podcasts_router
 from app.api.v1.sources import router as sources_router
 from app.api.v1.system import router as system_router
 from app.api.v1.topics import router as topics_router
@@ -34,7 +37,12 @@ app.include_router(users_router, prefix="/api/v1")
 app.include_router(topics_router, prefix="/api/v1")
 app.include_router(sources_router, prefix="/api/v1")
 app.include_router(articles_router, prefix="/api/v1")
+app.include_router(podcasts_router, prefix="/api/v1")
 app.include_router(system_router, prefix="/api/v1")
+
+# Mount static files for audio serving
+audio_dir = os.path.join(os.path.dirname(__file__), "..", "audio")
+app.mount("/audio", StaticFiles(directory=audio_dir), name="audio")
 
 
 @app.get("/")

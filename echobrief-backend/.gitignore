@@ -49,6 +49,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# Audio files
+audio/
+
 command.txt
 EchoBrief_SRS.md
 ERD.mermaid
+el-quickstart.md

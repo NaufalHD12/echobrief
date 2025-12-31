@@ -34,7 +34,7 @@ async def get_sources(
     service: Annotated[SourceService, Depends(get_source_service)],
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 10,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[SourceListResponse]:
     """
     Get paginated list of sources.
@@ -65,7 +65,7 @@ async def get_sources(
 async def get_source(
     source_id: Annotated[int, Path(description="Source ID")],
     service: Annotated[SourceService, Depends(get_source_service)],
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[SourceResponse]:
     """
     Get source by ID.

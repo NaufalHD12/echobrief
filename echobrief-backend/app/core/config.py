@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = ""
 
+    AUDIO_STORAGE_URL: str = ""
+
     JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = ""
 

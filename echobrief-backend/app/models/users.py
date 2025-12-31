@@ -1,9 +1,20 @@
 from datetime import datetime, timezone
+from enum import Enum
 from typing import ClassVar
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime
 from sqlmodel import Field, SQLModel
+
+
+class UserRole(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
+
+
+class PlanType(str, Enum):
+    FREE = "free"
+    PAID = "paid"
 
 
 class User(SQLModel, table=True):
@@ -13,8 +24,8 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, min_length=5, max_length=255)
     password_hash: str = Field(min_length=60, max_length=255)
     username: str = Field(unique=True, min_length=3, max_length=50)
-    role: str = Field(default="user")  # "user" or "admin"
-    plan_type: str = Field(default="free")  # "free" or "paid"
+    role: UserRole = Field(default=UserRole.USER)
+    plan_type: PlanType = Field(default=PlanType.FREE)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True),

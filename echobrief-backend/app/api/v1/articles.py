@@ -69,7 +69,7 @@ async def get_articles(
 async def get_article(
     article_id: Annotated[int, Path(description="Article ID")],
     service: Annotated[ArticleService, Depends(get_article_service)],
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[ArticleResponse]:
     """
     Get article by ID.

@@ -9,7 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..core.config import settings
 from ..core.database import get_session
-from ..models.users import User
+from ..models.users import User, UserRole
 from ..schemas.auth import TokenData
 from ..services.user_service import UserService
 
@@ -87,7 +87,7 @@ async def get_current_user(
 
 async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     """Get current user and verify admin role"""
-    if current_user.role != "admin":
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",

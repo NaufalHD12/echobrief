@@ -29,7 +29,7 @@ async def get_topics(
     service: Annotated[TopicService, Depends(get_topic_service)],
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 10,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[TopicListResponse]:
     """
     Get paginated list of topics.
@@ -60,7 +60,7 @@ async def get_topics(
 async def get_topic(
     service: Annotated[TopicService, Depends(get_topic_service)],
     topic_id: Annotated[int, Path(description="Topic ID")],
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[TopicResponse]:
     """
     Get topic by ID
@@ -82,7 +82,7 @@ async def get_topic(
 async def get_topic_by_slug(
     slug: Annotated[str, Path(description="Topic slug")],
     service: Annotated[TopicService, Depends(get_topic_service)],
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[TopicResponse]:
     """
     Get topic by slug.

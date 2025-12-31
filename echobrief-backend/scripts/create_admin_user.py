@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.database import async_session
+from app.models.users import UserRole
 from app.services.user_service import UserService
 from app.schemas.users import UserCreate
 
@@ -45,7 +46,7 @@ async def create_admin_user():
         admin_user = await user_service.create_user(admin_data)
 
         # Update role to admin
-        admin_user.role = "admin"
+        admin_user.role = UserRole.ADMIN
         session.add(admin_user)
         await session.commit()
 

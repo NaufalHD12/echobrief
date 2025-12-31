@@ -1,23 +1,18 @@
 from datetime import timedelta
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import (
     create_access_token,
     create_refresh_token,
-    get_current_admin,
-    get_current_user,
     verify_token,
 )
 from ...core.database import get_session
-from ...models.users import User
 from ...schemas.auth import RefreshTokenRequest, Token
 from ...schemas.common import ApiResponse
-from ...schemas.topics import TopicResponse
-from ...schemas.users import UserCreate, UserLogin, UserResponse, UserUpdate
+from ...schemas.users import UserLogin
 from ...services.user_service import UserService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])

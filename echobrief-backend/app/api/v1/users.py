@@ -1,7 +1,6 @@
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends
-
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import get_current_admin, get_current_user
@@ -19,7 +18,6 @@ async def get_user_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> UserService:
     return UserService(session)
-
 
 
 @router.get("/me", response_model=ApiResponse[UserResponse])
