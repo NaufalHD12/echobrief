@@ -92,7 +92,7 @@ async def create_source(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[SourceResponse]:
     """
-    Create a new source.
+    Create a new source. (admin only)
 
     - **name**: Source name (2-50 characters)
     - **base_url**: Base URL of the news source
@@ -117,7 +117,7 @@ async def update_source(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[SourceResponse]:
     """
-    Update source information.
+    Update source information. (admin only)
 
     - **source_id**: Unique identifier of the source to update
     - **name**: New source name (optional)
@@ -142,7 +142,7 @@ async def delete_source(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """
-    Delete a source.
+    Delete a source. (admin only)
 
     - **source_id**: Unique identifier of the source to delete
     """

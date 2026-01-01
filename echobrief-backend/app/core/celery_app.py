@@ -21,7 +21,7 @@ celery_app.conf.beat_schedule = {
     "generate-daily-podcasts": {
         "task": "app.tasks.podcast_generation.generate_daily_podcasts",
         "schedule": crontab(hour=3, minute=0),  # 3 AM daily
-    }
+    },
 }
 
 celery_app.conf.imports = ("app.tasks.news_aggregation", "app.tasks.podcast_generation")

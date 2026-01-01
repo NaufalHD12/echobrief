@@ -8,14 +8,14 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import get_current_admin, get_current_user
 from ...core.database import get_session
-from ...models.podcasts import PodcastTopic
+from ...models.podcasts import PodcastStatus, PodcastTopic
 from ...models.users import PlanType, User
 from ...schemas.articles import ArticleResponse
 from ...schemas.common import ApiResponse
 from ...schemas.podcasts import (
     PodcastCreate,
-    PodcastQuickCreate,
     PodcastListResponse,
+    PodcastQuickCreate,
     PodcastResponse,
     PodcastSegmentResponse,
 )
@@ -46,7 +46,7 @@ async def create_podcast(
 ) -> ApiResponse[PodcastResponse]:
     """
     Create a new podcast request.
-    
+
     - **topic_ids**: Optional list of topic IDs. If not provided, uses user's favorite topics.
     """
     # Determine topic_ids to use
@@ -56,18 +56,20 @@ async def create_podcast(
         # Get user's favorite topics
         user_service = UserService(service.session)
         user_topics = await user_service.get_user_topics(current_user.id)
-        
+
         if not user_topics:
             raise HTTPException(
                 status_code=400,
-                detail="No topics selected. Please select favorite topics first or provide topic_ids."
+                detail="No topics selected. Please select favorite topics first or provide topic_ids.",
             )
-        
+
         topic_ids = [topic.id for topic in user_topics if topic.id is not None]
-    
+
     # Create podcast with determined topic_ids
     podcast_create_data = PodcastCreate(topic_ids=topic_ids)
-    podcast = await service.create_podcast_request(current_user.id, podcast_create_data, current_user)
+    podcast = await service.create_podcast_request(
+        current_user.id, podcast_create_data, current_user
+    )
 
     response_data = PodcastResponse(
         id=podcast.id,
@@ -315,7 +317,7 @@ async def delete_podcast(
     current_admin: User = Depends(get_current_admin),
 ) -> ApiResponse[dict]:
     """
-    Delete a podcast and all related data.
+    Delete a podcast and all related data. (admin only)
 
     - **podcast_id**: Unique identifier of the podcast
     - Requires admin privileges
@@ -324,9 +326,7 @@ async def delete_podcast(
     if not deleted:
         raise HTTPException(status_code=404, detail="Podcast not found")
 
-    return ApiResponse(
-        message="Podcast deleted successfully", data={"deleted": True}
-    )
+    return ApiResponse(message="Podcast deleted successfully", data={"deleted": True})
 
 
 @router.post(
@@ -342,12 +342,13 @@ async def quick_generate_podcast(
 ) -> ApiResponse[PodcastResponse]:
     """
     Quick podcast generation with hybrid approach.
-    
+
     - **use_cached**: Use cached podcast if available (default: True)
-    - **custom_topic_ids**: Custom topics (optional, uses favorites if not provided)
+    - **custom_topic_ids**: List of topic IDs (optional, uses favorite topics if not provided)
+      Example: [1, 2, 3] or null/empty to use favorite topics
     """
     user_service = UserService(service.session)
-    
+
     # Determine topic_ids
     if request_data.custom_topic_ids:
         topic_ids = request_data.custom_topic_ids
@@ -356,24 +357,29 @@ async def quick_generate_podcast(
         if not user_topics:
             raise HTTPException(
                 status_code=400,
-                detail="No favorite topics selected. Please select topics first."
+                detail="No favorite topics selected. Please select topics first.",
             )
         topic_ids = [topic.id for topic in user_topics if topic.id is not None]
-    
+
     # Check cache first if enabled
     if request_data.use_cached:
         # Look for today's podcast with same topics
         today = datetime.now(timezone.utc).date()
         todays_podcasts = await service._get_user_podcasts_today(current_user.id, today)
-        
+
         for podcast in todays_podcasts:
             # Get podcast topics
-            query = select(PodcastTopic.topic_id).where(PodcastTopic.podcast_id == podcast.id)
+            query = select(PodcastTopic.topic_id).where(
+                PodcastTopic.podcast_id == podcast.id
+            )
             result = await service.session.exec(query)
             podcast_topic_ids = list(result.all())
-            
+
             # Check if podcast has all requested topics
-            if set(topic_ids) == set(podcast_topic_ids) and podcast.status == "completed":
+            if (
+                set(topic_ids) == set(podcast_topic_ids)
+                and podcast.status == "completed"
+            ):
                 # Return cached podcast
                 relations = await service.get_podcast_with_relations(podcast.id)
                 if relations:
@@ -404,7 +410,7 @@ async def quick_generate_podcast(
                         )
                         for segment in relations["segments"]
                     ]
-                    
+
                     response_data = PodcastResponse(
                         id=podcast.id,
                         user_id=podcast.user_id,
@@ -417,37 +423,102 @@ async def quick_generate_podcast(
                         articles=articles_response,
                         segments=segments_response,
                     )
-                    
+
                     return ApiResponse(
                         message="Cached podcast retrieved successfully",
-                        data=response_data
+                        data=response_data,
                     )
-    
+
     # Check plan restrictions for real-time generation
-    if current_user.plan_type == PlanType.FREE and not request_data.use_cached:
+    if current_user.plan_type == PlanType.FREE.value and not request_data.use_cached:
         raise HTTPException(
             status_code=400,
-            detail="Free plan can only use cached podcasts. Set use_cached=True or upgrade to paid plan."
+            detail="Free plan can only use cached podcasts. Set use_cached=True or upgrade to paid plan.",
         )
-    
+
     # Generate new podcast
     podcast_create_data = PodcastCreate(topic_ids=topic_ids)
-    podcast = await service.create_podcast_request(current_user.id, podcast_create_data, current_user)
-    
-    # Trigger async generation (in real implementation, this would be a background task)
-    # For now, we'll generate synchronously
+    podcast = await service.create_podcast_request(
+        current_user.id, podcast_create_data, current_user
+    )
+
+    # Generate podcast script and audio
     try:
-        await service.generate_podcast_script(podcast.id)
-        await service.generate_podcast_audio(podcast.id)
+        # Generate script
+        script = await service.generate_podcast_script(podcast.id)
+        if script:
+            podcast.generated_script = script
+            podcast.status = PodcastStatus.processing
+            await service.session.commit()
+            await service.session.refresh(podcast)
+
+        # Generate audio
+        audio_result = await service.generate_podcast_audio(podcast.id)
+        if audio_result and "audio_url" in audio_result:
+            podcast.audio_url = audio_result["audio_url"]
+            podcast.duration_seconds = audio_result.get("duration_seconds", 0)
+            podcast.status = PodcastStatus.completed
+        else:
+            podcast.status = PodcastStatus.failed
+
+        await service.session.commit()
+        await service.session.refresh(podcast)
+
     except Exception:
-        # If generation fails, return the podcast with pending status
-        # Exception is intentionally ignored to return podcast with pending status
-        pass
-    
-    # Refresh podcast to get updated status
-    await service.session.refresh(podcast)
-    
-    # Return immediate response
+        # Log error but continue to return response
+        podcast.status = PodcastStatus.failed
+        await service.session.commit()
+        await service.session.refresh(podcast)
+
+    # Get relations for response
+    relations = await service.get_podcast_with_relations(podcast.id)
+    if relations:
+        topics_response = [
+            TopicResponse(id=topic.id, name=topic.name, slug=topic.slug)
+            for topic in relations["topics"]
+        ]
+        articles_response = [
+            ArticleResponse(
+                id=article.id,
+                source_id=article.source_id,
+                topic_id=article.topic_id,
+                title=article.title,
+                summary_text=article.summary_text,
+                url=article.url,
+                published_at=article.published_at,
+                fetched_at=article.fetched_at,
+            )
+            for article in relations["articles"]
+        ]
+        segments_response = [
+            PodcastSegmentResponse(
+                id=segment.id,
+                podcast_id=segment.podcast_id,
+                title=segment.title,
+                start_second=segment.start_second,
+                end_second=segment.end_second,
+            )
+            for segment in relations["segments"]
+        ]
+    else:
+        topics_response = []
+        articles_response = []
+        segments_response = []
+
+    # Determine response message based on status
+    if podcast.status == "completed":
+        message = "Podcast generated successfully"
+    elif podcast.status == "processing":
+        message = "Podcast script generated, audio generation in progress"
+    elif podcast.status == "failed":
+        # Check if we have script but no audio
+        if podcast.generated_script and not podcast.audio_url:
+            message = "Podcast script generated but audio generation failed"
+        else:
+            message = "Podcast generation failed, please try again"
+    else:
+        message = "Podcast generation started"
+
     response_data = PodcastResponse(
         id=podcast.id,
         user_id=podcast.user_id,
@@ -456,12 +527,9 @@ async def quick_generate_podcast(
         duration_seconds=podcast.duration_seconds,
         status=podcast.status,
         created_at=podcast.created_at,
-        topics=[],  # Will be populated from relations
-        articles=[],
-        segments=[],
+        topics=topics_response,
+        articles=articles_response,
+        segments=segments_response,
     )
 
-    return ApiResponse(
-        message="Podcast generation started" if podcast.status == "pending" else "Podcast generated successfully",
-        data=response_data
-    )
+    return ApiResponse(message=message, data=response_data)

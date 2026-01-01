@@ -22,7 +22,11 @@ class PodcastCreate(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "topic_ids": [1, 2, 3]  # Optional, jika tidak diisi pakai favorite topics
+                "topic_ids": [
+                    1,
+                    2,
+                    3,
+                ]  # Optional, jika tidak diisi pakai favorite topics
             }
         }
     }
@@ -30,17 +34,12 @@ class PodcastCreate(BaseModel):
 
 class PodcastQuickCreate(BaseModel):
     """Schema for quick podcast generation (hybrid approach)"""
-    
+
     use_cached: bool = True  # Default true untuk hybrid approach
     custom_topic_ids: list[int] | None = None
-    
+
     model_config = {
-        "json_schema_extra": {
-            "example": {
-                "use_cached": True,
-                "custom_topic_ids": None
-            }
-        }
+        "json_schema_extra": {"example": {"use_cached": True, "custom_topic_ids": None}}
     }
 
 

@@ -64,3 +64,7 @@ class UserUpdate(BaseModel):
     """Schema for updating user profile"""
 
     username: Annotated[str | None, MinLen(3), MaxLen(50)] = None
+    plan_type: str | None = None
+    role: str | None = None
+
+    model_config = {"extra": "forbid"}  # Prevent extra fields

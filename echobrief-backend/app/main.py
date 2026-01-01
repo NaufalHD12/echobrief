@@ -10,6 +10,7 @@ from app.api.v1.articles import router as articles_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.podcasts import router as podcasts_router
 from app.api.v1.sources import router as sources_router
+from app.api.v1.subscriptions import router as subscriptions_router
 from app.api.v1.system import router as system_router
 from app.api.v1.topics import router as topics_router
 from app.api.v1.users import router as users_router
@@ -38,6 +39,7 @@ app.include_router(topics_router, prefix="/api/v1")
 app.include_router(sources_router, prefix="/api/v1")
 app.include_router(articles_router, prefix="/api/v1")
 app.include_router(podcasts_router, prefix="/api/v1")
+app.include_router(subscriptions_router, prefix="/api/v1")
 app.include_router(system_router, prefix="/api/v1")
 
 # Mount static files for audio serving

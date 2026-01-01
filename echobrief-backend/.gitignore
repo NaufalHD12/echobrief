@@ -52,6 +52,8 @@ Thumbs.db
 # Audio files
 audio/
 
+tests/
+
 command.txt
 EchoBrief_SRS.md
 ERD.mermaid

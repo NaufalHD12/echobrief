@@ -1,14 +1,14 @@
 import logging
 import os
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional, Sequence
 from uuid import UUID
 
 from fastapi import HTTPException
 from openai import OpenAI
-from sqlmodel import desc, select
+from sqlmodel import delete, desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from datetime import datetime, timezone, date, timedelta
 from ..core.config import settings
 from ..models.articles import Article
 from ..models.podcasts import (
@@ -19,9 +19,10 @@ from ..models.podcasts import (
     PodcastTopic,
 )
 from ..models.topics import Topic
-from ..models.users import PlanType, User
+from ..models.users import User, UserTopic
 from ..schemas.podcasts import PodcastCreate
 from .article_service import ArticleService
+from .subscription_service import SubscriptionService
 from .tts_service import TTSService
 
 logger = logging.getLogger(__name__)
@@ -44,18 +45,18 @@ class PodcastService:
         if podcast_data.topic_ids is None:
             raise HTTPException(
                 status_code=400,
-                detail="Topic IDs cannot be None. Please provide topic_ids or use favorite topics."
+                detail="Topic IDs cannot be None. Please provide topic_ids or use favorite topics.",
             )
-        
+
         # Get user object if not provided
         if user is None:
             user = await self.session.get(User, user_id)
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Apply plan restrictions
         await self._validate_plan_restrictions(user, podcast_data.topic_ids)
-        
+
         # Validate user has access to topics
         user_topics = await self._get_user_topic_ids(user_id)
         for topic_id in podcast_data.topic_ids:
@@ -254,8 +255,6 @@ class PodcastService:
 
     async def _get_user_topic_ids(self, user_id: UUID) -> list[int]:
         """Get topic IDs accessible by user"""
-        from ..models.users import UserTopic
-
         query = select(UserTopic.topic_id).where(UserTopic.user_id == user_id)
         result = await self.session.exec(query)
         return list(result.all())
@@ -290,8 +289,6 @@ class PodcastService:
             return False
 
         # Delete related records first (due to foreign key constraints)
-        from sqlmodel import delete
-        
         # Delete podcast articles
         await self.session.exec(delete(PodcastArticle).where(PodcastArticle.podcast_id == podcast_id))  # type: ignore
         # Delete podcast topics
@@ -316,32 +313,44 @@ class PodcastService:
 
         return True
 
-    async def _validate_plan_restrictions(self, user: User, topic_ids: list[int]) -> None:
+    async def _validate_plan_restrictions(
+        self, user: User, topic_ids: list[int]
+    ) -> None:
         """Validate plan-based restrictions for podcast creation"""
-        if user.plan_type == PlanType.FREE:
+        # Check user's effective plan (considering active subscriptions)
+        subscription_service = SubscriptionService(self.session)
+        effective_plan = await subscription_service.get_user_plan_type(user.id)
+
+        if effective_plan == "free":
             # Free plan: max 3 topics
             if len(topic_ids) > 3:
                 raise HTTPException(
                     status_code=400,
-                    detail="Free plan limited to 3 topics. Upgrade to add more."
+                    detail="Free plan limited to 3 topics. Upgrade to add more.",
                 )
-            
+
             # Free plan: check daily limit (1 podcast/day)
             today = datetime.now(timezone.utc).date()
             todays_podcasts = await self._get_user_podcasts_today(user.id, today)
             if len(todays_podcasts) >= 1:  # 1 podcast/day for free
                 raise HTTPException(
                     status_code=400,
-                    detail="Free plan limited to 1 podcast per day. Upgrade for unlimited."
+                    detail="Free plan limited to 1 podcast per day. Upgrade for unlimited.",
                 )
-        
+
         # Paid plan: no restrictions
-    
-    async def _get_user_podcasts_today(self, user_id: UUID, date: date) -> list[Podcast]:
+
+    async def _get_user_podcasts_today(
+        self, user_id: UUID, date: date
+    ) -> list[Podcast]:
         """Get user's podcasts for a specific date"""
-        start_of_day = datetime.combine(date, datetime.min.time()).replace(tzinfo=timezone.utc)
-        end_of_day = datetime.combine(date + timedelta(days=1), datetime.min.time()).replace(tzinfo=timezone.utc)
-        
+        start_of_day = datetime.combine(date, datetime.min.time()).replace(
+            tzinfo=timezone.utc
+        )
+        end_of_day = datetime.combine(
+            date + timedelta(days=1), datetime.min.time()
+        ).replace(tzinfo=timezone.utc)
+
         query = (
             select(Podcast)
             .where(Podcast.user_id == user_id)

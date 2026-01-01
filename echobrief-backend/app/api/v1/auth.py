@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from typing import Annotated
 
@@ -12,7 +13,7 @@ from ...core.auth import (
 from ...core.database import get_session
 from ...schemas.auth import RefreshTokenRequest, Token
 from ...schemas.common import ApiResponse
-from ...schemas.users import UserLogin
+from ...schemas.users import UserCreate, UserLogin, UserResponse
 from ...services.user_service import UserService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -22,6 +23,36 @@ async def get_user_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> UserService:
     return UserService(session)
+
+
+@router.post("/register", response_model=ApiResponse[UserResponse])
+async def register(
+    user_data: UserCreate,
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[UserResponse]:
+    """
+    Register new user.
+    
+    - **email**: User email (must be valid email format)
+    - **username**: Username (3-50 characters)
+    - **password**: Password (min 8 characters, must contain uppercase, lowercase, number, and special character)
+    """
+    try:
+        user = await user_service.create_user(user_data)
+        return ApiResponse(
+            message="User registered successfully",
+            data=UserResponse(**user.model_dump()),
+        )
+    except HTTPException as e:
+        # Re-raise HTTP exceptions
+        raise e
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error during registration: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed due to server error",
+        )
 
 
 @router.post("/login", response_model=ApiResponse[Token])

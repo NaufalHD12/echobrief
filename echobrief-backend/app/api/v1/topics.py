@@ -108,7 +108,7 @@ async def create_topic(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[TopicResponse]:
     """
-    Create a new topic.
+    Create a new topic. (admin only)
 
     - **name**: Topic name (2-50 characters)
     - **slug**: URL-friendly identifier (auto-generated if not provided)
@@ -132,7 +132,7 @@ async def update_topic(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[TopicResponse]:
     """
-    Update topic information.
+    Update topic information. (admin only)
 
     - **topic_id**: Unique identifier of the topic to update
     - **name**: New topic name (optional)
@@ -156,7 +156,7 @@ async def delete_topic(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """
-    Delete a topic.
+    Delete a topic. (admin only)
 
     - **topic_id**: Unique identifier of the topic to delete
     """

@@ -12,6 +12,7 @@ from sqlmodel import SQLModel
 from app.models.topics import Topic
 from app.models.sources import Source
 from app.models.users import User, UserTopic
+from app.models.subscriptions import UserSubscription
 
 from app.core.config import settings
 

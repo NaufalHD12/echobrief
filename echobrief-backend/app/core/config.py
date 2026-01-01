@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = ""
 
+    KOFI_URL: str = ""
+    KOFI_VERIFICATION_TOKEN: str = ""
+
+    PAYMENT_PLAN_MONTHLY_PRICE: float = 5.00
+    PAYMENT_PLAN_YEARLY_PRICE: float = 50.00
+    TRIAL_DAYS: int = 3
+
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=False, extra="ignore"
     )

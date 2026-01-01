@@ -29,92 +29,18 @@ from app.models.topics import Topic  # noqa: E402
 
 # Daftar topik spesifik beragam untuk agregasi berita
 DIVERSE_TOPICS = [
-    # --- Entertainment ---
-    "Entertainment",
-    "Celebrities",
-    "Movies",
-    "TV",
-    "Music",
-    "Theatre",
-    "Gaming",
-    "Arts & Design",
-    "Books",
-
-    # --- Sports ---
-    "Sports",
-    "Football",
-    "Soccer",
-    "Cycling",
-    "Motor Sports",
-    "Formula 1",
-    "MotoGP",
-    "Tennis",
-    "Combat Sports",
-    "UFC",
-    "Boxing",
-    "Basketball",
-    "Baseball",
-    "American Football",
-    "Sports betting",
-    "Water Sports",
-    "Cricket",
-    "Golf",
-    "Athletics",
-    "Hockey",
-
-    # --- Technology ---
-    "Technology",
-    "Mobile",
-    "Gadgets",
-    "Internet",
-    "Virtual Reality",
-    "Artificial Intelligence",
-    "Cybersecurity",
-    "Computing",
-    "Robotics",
-    "Space",
-
-    # --- Business ---
+    "Politics",
     "Business",
-    "Economy",
-    "Markets",
-    "Jobs",
-    "Personal Finance",
-    "Entrepreneurship",
-    "Startups",
-    "Real Estate",
-    "Crypto",
-
-    # --- Science ---
-    "Science",
-    "Environment",
-    "Climate Change",
-    "Physics",
-    "Biology",
-    "Archaeology",
-    "Astronomy",
-    "Paleontology",
-
-    # --- Health ---
     "Health",
-    "Medicine",
-    "Healthcare",
-    "Mental Health",
-    "Nutrition",
-    "Fitness",
-    "Public Health",
-
-    # --- Lifestyle & General ---
-    "Lifestyle",
+    "Entertainment",
+    "Style",
     "Travel",
-    "Food & Drink",
-    "Fashion",
-    "Beauty",
-    "Home & Garden",
-    "Automotive",
-    "Education",
-    "Relationships",
-    "Parenting"
+    "Sports",
+    "Science",
+    "Technology",
+    "Gaming",
+    "Climate",
+    "Weather",
 ]
 
 

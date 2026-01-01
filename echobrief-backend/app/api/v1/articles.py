@@ -96,7 +96,7 @@ async def create_article(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[ArticleResponse]:
     """
-    Create a new article.
+    Create a new article. (admin only)
 
     - **source_id**: ID of the news source
     - **topic_id**: ID of the topic
@@ -123,7 +123,7 @@ async def update_article(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[ArticleResponse]:
     """
-    Update article information.
+    Update article information. (admin only)
 
     - **article_id**: Unique identifier of the article to update
     - **title**: New article title (optional)
@@ -150,7 +150,7 @@ async def delete_article(
     current_user: User = Depends(get_current_admin),
 ) -> ApiResponse[None]:
     """
-    Delete an article.
+    Delete an article. (admin only)
 
     - **article_id**: Unique identifier of the article to delete
     """

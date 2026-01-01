@@ -10,6 +10,7 @@ from ..core.security import hash_password, verify_password
 from ..models.topics import Topic
 from ..models.users import User, UserTopic
 from ..schemas.users import UserCreate, UserUpdate
+from .subscription_service import SubscriptionService
 
 
 class UserService:
@@ -66,17 +67,50 @@ class UserService:
             return None
         return user
 
-    async def update_user(self, user_id: UUID, user_data: UserUpdate) -> User:
-        """Update user profile"""
+    async def update_user(
+        self, user_id: UUID, user_data: UserUpdate, current_user: User | None = None
+    ) -> User:
+        """Update user profile with permission validation"""
         user = await self.get_user_by_id(user_id)
 
         update_data = user_data.model_dump(exclude_unset=True)
+
+        # If current_user is provided, check permissions
+        if current_user:
+            # Check if user is admin
+            is_admin = current_user.role == "admin"
+
+            # Non-admin users can only update their own profile
+            if not is_admin and current_user.id != user_id:
+                raise HTTPException(
+                    status_code=403, detail="Cannot update another user's profile"
+                )
+
+            # Non-admin users cannot update plan_type or role
+            if not is_admin and ("plan_type" in update_data or "role" in update_data):
+                raise HTTPException(
+                    status_code=403, detail="Only admins can update plan_type or role"
+                )
 
         # Check username uniqueness if being updated
         if "username" in update_data:
             existing = await self.get_user_by_username(update_data["username"])
             if existing and existing.id != user_id:
                 raise HTTPException(status_code=400, detail="Username already taken")
+
+        # Validate plan_type values
+        if "plan_type" in update_data:
+            if update_data["plan_type"] not in ["free", "paid"]:
+                raise HTTPException(
+                    status_code=400, detail="plan_type must be 'free' or 'paid'"
+                )
+
+        # Validate role values
+        if "role" in update_data:
+            if update_data["role"] not in ["user", "admin"]:
+                raise HTTPException(
+                    status_code=400, detail="role must be 'user' or 'admin'"
+                )
 
         user.sqlmodel_update(update_data)
         self.session.add(user)
@@ -113,12 +147,13 @@ class UserService:
             raise HTTPException(status_code=400, detail="Topic already selected")
 
         # Check plan limits
-        user = await self.get_user_by_id(user_id)
+        subscription_service = SubscriptionService(self.session)
+        effective_plan = await subscription_service.get_user_plan_type(user_id)
         current_topics = await self.get_user_topics(user_id)
-        if user.plan_type == "free" and len(current_topics) >= 1:
+        if effective_plan == "free" and len(current_topics) >= 3:
             raise HTTPException(
                 status_code=400,
-                detail="Free plan limited to 1 topic. Upgrade to add more topics.",
+                detail="Free plan limited to 3 topics. Upgrade to add more topics.",
             )
 
         # Add topic

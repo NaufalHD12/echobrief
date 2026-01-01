@@ -46,7 +46,7 @@ async def create_admin_user():
         admin_user = await user_service.create_user(admin_data)
 
         # Update role to admin
-        admin_user.role = UserRole.ADMIN
+        admin_user.role = UserRole.ADMIN.value
         session.add(admin_user)
         await session.commit()
 
