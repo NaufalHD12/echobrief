@@ -6,8 +6,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
+from app.api.v1.admin import router as admin_router
 from app.api.v1.articles import router as articles_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.podcasts import router as podcasts_router
 from app.api.v1.sources import router as sources_router
 from app.api.v1.subscriptions import router as subscriptions_router
@@ -34,6 +36,8 @@ app = FastAPI(
 
 # Include routers
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(topics_router, prefix="/api/v1")
 app.include_router(sources_router, prefix="/api/v1")
@@ -45,6 +49,10 @@ app.include_router(system_router, prefix="/api/v1")
 # Mount static files for audio serving
 audio_dir = os.path.join(os.path.dirname(__file__), "..", "audio")
 app.mount("/audio", StaticFiles(directory=audio_dir), name="audio")
+
+# Mount static files for avatar serving
+avatar_dir = os.path.join(os.path.dirname(__file__), "..", "avatar")
+app.mount("/avatars", StaticFiles(directory=avatar_dir), name="avatars")
 
 
 @app.get("/")

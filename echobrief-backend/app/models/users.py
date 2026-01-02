@@ -22,7 +22,7 @@ class User(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str = Field(unique=True, min_length=5, max_length=255)
-    password_hash: str = Field(min_length=60, max_length=255)
+    password_hash: str | None = Field(default=None, min_length=60, max_length=255)
     username: str = Field(unique=True, min_length=3, max_length=50)
     role: str = Field(
         default=UserRole.USER.value,
@@ -32,6 +32,12 @@ class User(SQLModel, table=True):
         default=PlanType.FREE.value,
         sa_column_kwargs={"server_default": PlanType.FREE.value, "nullable": False},
     )
+    google_id: str | None = Field(default=None, unique=True)
+    auth_provider: str = Field(
+        default="local",
+        sa_column_kwargs={"server_default": "local", "nullable": False},
+    )
+    avatar_filename: str | None = Field(default=None, max_length=255)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True),

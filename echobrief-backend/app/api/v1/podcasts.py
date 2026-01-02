@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...core.auth import get_current_admin, get_current_user
+from ...core.auth import get_current_user
 from ...core.database import get_session
 from ...models.podcasts import PodcastStatus, PodcastTopic
 from ...models.users import PlanType, User
@@ -93,29 +93,26 @@ async def create_podcast(
     "/",
     response_model=ApiResponse[PodcastListResponse],
     summary="Get user podcasts",
-    description="Retrieve paginated list of user's podcasts",
+    description="Retrieve paginated list of user's podcasts with optional search",
 )
 async def get_podcasts(
     service: Annotated[PodcastService, Depends(get_podcast_service)],
+    search: Annotated[str | None, Query(description="Search in topic names")] = None,
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 10,
     current_user: User = Depends(get_current_user),
 ) -> ApiResponse[PodcastListResponse]:
     """
-    Get paginated list of user's podcasts.
+    Get paginated list of user's podcasts with optional search.
 
+    - **search**: Optional search term for topic names associated with podcasts (case-insensitive)
     - **page**: Page number (starts from 1)
     - **per_page**: Number of items per page (max 100, default 10)
     """
     skip = (page - 1) * per_page
-    podcasts = await service.get_user_podcasts(
-        current_user.id, skip=skip, limit=per_page
+    podcasts, total = await service.get_user_podcasts(
+        current_user.id, skip=skip, limit=per_page, search=search
     )
-
-    # Get total count
-    total = len(
-        await service.get_user_podcasts(current_user.id)
-    )  # Inefficient, should be optimized
 
     podcast_responses = []
     for podcast in podcasts:
@@ -305,28 +302,7 @@ async def generate_audio(
     )
 
 
-@router.delete(
-    "/{podcast_id}",
-    response_model=ApiResponse[dict],
-    summary="Delete podcast",
-    description="Delete a podcast and all related data (Admin access required)",
-)
-async def delete_podcast(
-    podcast_id: Annotated[UUID, Path(description="Podcast ID")],
-    service: Annotated[PodcastService, Depends(get_podcast_service)],
-    current_admin: User = Depends(get_current_admin),
-) -> ApiResponse[dict]:
-    """
-    Delete a podcast and all related data. (admin only)
 
-    - **podcast_id**: Unique identifier of the podcast
-    - Requires admin privileges
-    """
-    deleted = await service.delete_podcast(podcast_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Podcast not found")
-
-    return ApiResponse(message="Podcast deleted successfully", data={"deleted": True})
 
 
 @router.post(

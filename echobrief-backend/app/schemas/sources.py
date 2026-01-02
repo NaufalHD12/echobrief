@@ -28,6 +28,29 @@ class SourceCreate(SourceBase):
     pass
 
 
+class SourceCreateBulk(BaseModel):
+    """Schema for bulk create sources"""
+
+    sources: list[SourceCreate]
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "sources": [
+                    {
+                        "name": "CNN",
+                        "base_url": "http://rss.cnn.com/rss/edition.rss"
+                    },
+                    {
+                        "name": "BBC News",
+                        "base_url": "http://feeds.bbci.co.uk/news/rss.xml"
+                    }
+                ]
+            }
+        }
+    }
+
+
 class SourceUpdate(BaseModel):
     """Schema for update source (All field are optional)"""
 

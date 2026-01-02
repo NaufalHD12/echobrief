@@ -60,6 +60,44 @@ class SourceService:
         await self.session.refresh(source)
         return source
 
+    async def create_sources_bulk(self, sources_data: list[SourceCreate]) -> list[Source]:
+        """Create multiple sources in bulk"""
+        created_sources = []
+        errors = []
+
+        for i, source_data in enumerate(sources_data):
+            try:
+                # Check if source already exists
+                source_name = source_data.name
+                existing_query = select(Source).where(
+                    func.lower(Source.name) == source_name.lower()
+                )
+                existing_result = await self.session.exec(existing_query)
+                existing = existing_result.first()
+                if existing:
+                    errors.append(f"Source '{source_name}' at index {i} already exists")
+                    continue
+
+                source = Source(**source_data.model_dump())
+                self.session.add(source)
+                created_sources.append(source)
+
+            except Exception as e:
+                errors.append(f"Error creating source '{source_data.name}' at index {i}: {str(e)}")
+
+        if created_sources:
+            await self.session.commit()
+            # Refresh all created sources
+            for source in created_sources:
+                await self.session.refresh(source)
+
+        if errors:
+            # If there were errors but some sources were created, we still commit
+            # but return information about errors
+            pass  # Could log errors or handle differently
+
+        return created_sources
+
     async def update_source(self, source_id: int, source_data: SourceUpdate) -> Source:
         """Update existing source"""
         source = await self.get_source_by_id(source_id)

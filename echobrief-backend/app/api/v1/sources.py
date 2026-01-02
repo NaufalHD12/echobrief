@@ -3,15 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...core.auth import get_current_admin, get_current_user
+from ...core.auth import get_current_user
 from ...core.database import get_session
 from ...models.users import User
 from ...schemas.common import ApiResponse
 from ...schemas.sources import (
-    SourceCreate,
     SourceListResponse,
     SourceResponse,
-    SourceUpdate,
 )
 from ...services.source_service import SourceService
 
@@ -77,74 +75,3 @@ async def get_source(
         message="Source retrieved successfully",
         data=SourceResponse(**source.model_dump()),
     )
-
-
-@router.post(
-    "/",
-    response_model=ApiResponse[SourceResponse],
-    status_code=201,
-    summary="Create new source",
-    description="Create a new news source (admin only)",
-)
-async def create_source(
-    source_data: SourceCreate,
-    service: Annotated[SourceService, Depends(get_source_service)],
-    current_user: User = Depends(get_current_admin),
-) -> ApiResponse[SourceResponse]:
-    """
-    Create a new source. (admin only)
-
-    - **name**: Source name (2-50 characters)
-    - **base_url**: Base URL of the news source
-    """
-    source = await service.create_source(source_data)
-    return ApiResponse(
-        message="Source created successfully",
-        data=SourceResponse(**source.model_dump()),
-    )
-
-
-@router.put(
-    "/{source_id}",
-    response_model=ApiResponse[SourceResponse],
-    summary="Update source",
-    description="Update an existing source's information (admin only)",
-)
-async def update_source(
-    source_id: Annotated[int, Path(description="Source ID")],
-    source_data: SourceUpdate,
-    service: Annotated[SourceService, Depends(get_source_service)],
-    current_user: User = Depends(get_current_admin),
-) -> ApiResponse[SourceResponse]:
-    """
-    Update source information. (admin only)
-
-    - **source_id**: Unique identifier of the source to update
-    - **name**: New source name (optional)
-    - **base_url**: New base URL (optional)
-    """
-    source = await service.update_source(source_id, source_data)
-    return ApiResponse(
-        message="Source updated successfully",
-        data=SourceResponse(**source.model_dump()),
-    )
-
-
-@router.delete(
-    "/{source_id}",
-    response_model=ApiResponse[None],
-    summary="Delete source",
-    description="Delete a source by its ID (admin only)",
-)
-async def delete_source(
-    source_id: Annotated[int, Path(description="Source ID")],
-    service: Annotated[SourceService, Depends(get_source_service)],
-    current_user: User = Depends(get_current_admin),
-) -> ApiResponse[None]:
-    """
-    Delete a source. (admin only)
-
-    - **source_id**: Unique identifier of the source to delete
-    """
-    await service.delete_source(source_id)
-    return ApiResponse(message="Source deleted successfully")

@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     KOFI_URL: str = ""
     KOFI_VERIFICATION_TOKEN: str = ""
 
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+
     PAYMENT_PLAN_MONTHLY_PRICE: float = 5.00
     PAYMENT_PLAN_YEARLY_PRICE: float = 50.00
     TRIAL_DAYS: int = 3

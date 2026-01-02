@@ -24,6 +24,29 @@ class TopicCreate(TopicBase):
     slug: str | None = PydanticField(None, min_length=2, max_length=50)
 
 
+class TopicCreateBulk(BaseModel):
+    """Schema for bulk create topics"""
+
+    topics: list[TopicCreate]
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "topics": [
+                    {
+                        "name": "Technology",
+                        "slug": "technology"
+                    },
+                    {
+                        "name": "Science",
+                        "slug": "science"
+                    }
+                ]
+            }
+        }
+    }
+
+
 class TopicUpdate(BaseModel):
     """Schema for update topic (All field are optional)"""
 

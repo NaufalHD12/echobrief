@@ -1,8 +1,9 @@
 from typing import Sequence
 
 from fastapi import HTTPException
+from sqlalchemy import func
 from slugify import slugify
-from sqlmodel import func, select
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..models.topics import Topic
@@ -14,17 +15,26 @@ class TopicService:
         self.session = session
 
     async def get_topics(
-        self, skip: int = 0, limit: int = 10
+        self, skip: int = 0, limit: int = 10, search: str | None = None
     ) -> tuple[Sequence[Topic], int]:
-        """Get paginated list of topics"""
-        query = select(Topic).offset(skip).limit(limit)
-        result = await self.session.exec(query)
-        topics = result.all()
+        """Get paginated list of topics with optional search"""
+        query = select(Topic)
+
+        if search:
+            search_lower = search.lower()
+            # Search in topic name using case-insensitive comparison
+            query = query.where(func.lower(Topic.name).like(f"%{search_lower}%"))
 
         # Get total count
-        count_query = select(func.count()).select_from(Topic)
-        total_result = await self.session.exec(count_query)
+        total_result = await self.session.exec(
+            select(func.count()).select_from(query.subquery())
+        )
         total = total_result.one()
+
+        # Apply pagination
+        query = query.offset(skip).limit(limit)
+        result = await self.session.exec(query)
+        topics = result.all()
 
         return topics, total
 
@@ -61,6 +71,43 @@ class TopicService:
         await self.session.commit()
         await self.session.refresh(topic)
         return topic
+
+    async def create_topics_bulk(self, topics_data: list[TopicCreate]) -> list[Topic]:
+        """Create multiple topics in bulk"""
+        created_topics = []
+        errors = []
+
+        for i, topic_data in enumerate(topics_data):
+            try:
+                # Generate slug if not provided
+                slug = topic_data.slug or slugify(topic_data.name)
+
+                existing_query = select(Topic).where(Topic.slug == slug)
+                existing_result = await self.session.exec(existing_query)
+                existing = existing_result.first()
+                if existing:
+                    errors.append(f"Topic with slug '{slug}' at index {i} already exists")
+                    continue
+
+                topic = Topic(name=topic_data.name, slug=slug)
+                self.session.add(topic)
+                created_topics.append(topic)
+
+            except Exception as e:
+                errors.append(f"Error creating topic '{topic_data.name}' at index {i}: {str(e)}")
+
+        if created_topics:
+            await self.session.commit()
+            # Refresh all created topics
+            for topic in created_topics:
+                await self.session.refresh(topic)
+
+        if errors:
+            # If there were errors but some topics were created, we still commit
+            # but return information about errors
+            pass  # Could log errors or handle differently
+
+        return created_topics
 
     async def update_topic(self, topic_id: int, topic_data: TopicUpdate) -> Topic:
         """Update existing topic"""

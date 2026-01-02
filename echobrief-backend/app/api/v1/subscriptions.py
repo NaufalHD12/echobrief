@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...core.auth import get_current_admin, get_current_user
+from ...core.auth import get_current_user
 from ...core.config import settings
 from ...core.database import get_session
 from ...models.subscriptions import SubscriptionStatus
@@ -233,25 +233,4 @@ async def get_user_plan_type(
     return ApiResponse(
         message="Plan type retrieved successfully",
         data={"plan_type": plan_type, "is_premium": plan_type == "paid"},
-    )
-
-
-@router.post("/check-expired", response_model=ApiResponse[dict])
-async def check_expired_subscriptions(
-    current_admin: User = Depends(get_current_admin),
-    subscription_service: SubscriptionService = Depends(get_subscription_service),
-) -> ApiResponse[dict]:
-    """
-    Check and update expired subscriptions (admin endpoint).
-
-    This should be called periodically (e.g., daily) to clean up expired subscriptions.
-    """
-    expired_subs = await subscription_service.check_and_update_expired_subscriptions()
-
-    return ApiResponse(
-        message="Checked expired subscriptions",
-        data={
-            "expired_count": len(expired_subs),
-            "expired_subscription_ids": [str(sub.id) for sub in expired_subs],
-        },
     )

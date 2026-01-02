@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from openai import OpenAI
+from sqlalchemy import func
 from sqlmodel import delete, desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -206,14 +207,35 @@ class PodcastService:
         return result.first()
 
     async def get_user_podcasts(
-        self, user_id: UUID, skip: int = 0, limit: int = 10
-    ) -> Sequence[Podcast]:
-        """Get podcasts for a user"""
-        query = (
-            select(Podcast).where(Podcast.user_id == user_id).offset(skip).limit(limit)
+        self, user_id: UUID, skip: int = 0, limit: int = 10, search: str | None = None
+    ) -> tuple[Sequence[Podcast], int]:
+        """Get podcasts for a user with optional search"""
+        query = select(Podcast).where(Podcast.user_id == user_id)
+
+        if search:
+            search_lower = search.lower()
+            # Search in associated topic names
+            topic_subquery = (
+                select(PodcastTopic.podcast_id)
+                .select_from(PodcastTopic)
+                .join(Topic)
+                .where(PodcastTopic.topic_id == Topic.id)
+                .where(func.lower(Topic.name).like(f"%{search_lower}%"))
+            )
+
+            podcast_attr = getattr(Podcast, "id")
+            query = query.where(podcast_attr.in_(topic_subquery))
+
+        # Get total count
+        total_result = await self.session.exec(
+            select(func.count()).select_from(query.subquery())
         )
+        total = total_result.one()
+
+        # Apply pagination and ordering
+        query = query.order_by(desc(Podcast.created_at)).offset(skip).limit(limit)
         result = await self.session.exec(query)
-        return result.all()
+        return result.all(), total
 
     async def get_podcast_with_relations(self, podcast_id: UUID) -> Optional[dict]:
         """Get podcast with all related data"""

@@ -1,7 +1,7 @@
 from typing import Sequence
 
 from fastapi import HTTPException
-from sqlmodel import func, select
+from sqlmodel import desc, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..models.articles import Article
@@ -15,24 +15,29 @@ class ArticleService:
         self.session = session
 
     async def get_articles(
-        self, skip: int = 0, limit: int = 10, topic_id: int | None = None
+        self, skip: int = 0, limit: int = 10, topic_id: int | None = None, search: str | None = None
     ) -> tuple[Sequence[Article], int]:
-        """Get paginated list of articles"""
+        """Get paginated list of articles with optional filtering"""
         query = select(Article)
 
         if topic_id is not None:
             query = query.where(Article.topic_id == topic_id)
 
-        query = query.offset(skip).limit(limit)
-        result = await self.session.exec(query)
-        articles = result.all()
+        if search:
+            search_lower = search.lower()
+            # Search in article title using case-insensitive comparison
+            query = query.where(func.lower(Article.title).like(f"%{search_lower}%"))
 
         # Get total count
-        count_query = select(func.count()).select_from(Article)
-        if topic_id is not None:
-            count_query = count_query.where(Article.topic_id == topic_id)
-        total_result = await self.session.exec(count_query)
+        total_result = await self.session.exec(
+            select(func.count()).select_from(query.subquery())
+        )
         total = total_result.one()
+
+        # Apply pagination
+        query = query.offset(skip).limit(limit).order_by(desc(Article.published_at))
+        result = await self.session.exec(query)
+        articles = result.all()
 
         return articles, total
 

@@ -1,9 +1,10 @@
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...core.auth import get_current_admin, get_current_user
+from ...core.auth import get_current_user
 from ...core.database import get_session
 from ...models.users import User
 from ...schemas.common import ApiResponse
@@ -44,14 +45,12 @@ async def update_current_user_profile(
     """
     Update current user profile.
 
-    - **username**: New username (optional, 3-50 characters)
-    - **plan_type**: Cannot be updated by regular users (admin only)
-    - **role**: Cannot be updated by regular users (admin only)
+    - **username**: New username (3-50 characters)
 
     Note: Regular users can only update their username.
     """
-    updated_user = await user_service.update_user(
-        current_user.id, user_data, current_user
+    updated_user = await user_service.update_user_profile(
+        current_user.id, user_data
     )
     return ApiResponse(
         message="Profile updated successfully",
@@ -59,53 +58,6 @@ async def update_current_user_profile(
     )
 
 
-@router.get("/", response_model=ApiResponse[list[UserResponse]])
-async def get_users(
-    current_user: User = Depends(get_current_admin),
-    user_service: UserService = Depends(get_user_service),
-) -> ApiResponse[list[UserResponse]]:
-    """
-    Get all users (admin only).
-
-    Returns list of all users in the system with their profile information.
-    Requires admin privileges.
-    """
-    users = await user_service.get_all_users()
-    return ApiResponse(
-        message="Users retrieved successfully",
-        data=[UserResponse(**user.model_dump()) for user in users],
-    )
-
-
-@router.put("/{user_id}", response_model=ApiResponse[UserResponse])
-async def update_user(
-    user_id: str,
-    user_data: UserUpdate,
-    current_admin: User = Depends(get_current_admin),
-    user_service: UserService = Depends(get_user_service),
-) -> ApiResponse[UserResponse]:
-    """
-    Update user profile (admin only).
-
-    - **user_id**: User ID in UUID format
-    - **username**: New username (optional, 3-50 characters)
-    - **plan_type**: New plan type - "free" or "paid" (optional)
-    - **role**: New role - "user" or "admin" (optional)
-
-    Requires admin privileges.
-    """
-    from uuid import UUID
-
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
-    updated_user = await user_service.update_user(user_uuid, user_data, current_admin)
-    return ApiResponse(
-        message="User updated successfully",
-        data=UserResponse(**updated_user.model_dump()),
-    )
 
 
 @router.post("/topics", response_model=ApiResponse[dict])
@@ -160,4 +112,106 @@ async def get_user_topics(
     return ApiResponse(
         message="Topics retrieved successfully",
         data=[TopicResponse(**topic.model_dump()) for topic in topics],
+    )
+
+
+@router.get("/me/avatar", response_model=ApiResponse[dict])
+async def get_current_user_avatar(
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[dict]:
+    """
+    Get current user's avatar URL.
+
+    Returns avatar URL that can be used to display the user's profile picture.
+    """
+    avatar_url = await user_service.get_user_avatar_url(current_user.id)
+    return ApiResponse(
+        message="Avatar URL retrieved successfully",
+        data={"avatar_url": avatar_url},
+    )
+
+
+@router.post("/me/avatar", response_model=ApiResponse[dict])
+async def upload_current_user_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[dict]:
+    """
+    Upload avatar for current user.
+
+    - **file**: Image file (JPG, PNG, GIF, WebP, max 5MB)
+
+    Supported formats: JPG, PNG, GIF, WebP
+    Maximum file size: 5MB
+    """
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+
+    # Save uploaded file temporarily
+    import tempfile
+    import os
+
+    filename = file.filename or "upload.jpg"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
+        temp_file.write(await file.read())
+        temp_path = temp_file.name
+
+    try:
+        # Upload avatar
+        avatar_url = await user_service.upload_user_avatar(
+            current_user.id, temp_path, filename
+        )
+
+        return ApiResponse(
+            message="Avatar uploaded successfully",
+            data={"avatar_url": avatar_url},
+        )
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+
+@router.delete("/me/avatar", response_model=ApiResponse[dict])
+async def delete_current_user_avatar(
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[dict]:
+    """
+    Delete current user's avatar (reset to default).
+
+    This will remove the uploaded avatar and reset to the default generated avatar.
+    """
+    await user_service.delete_user_avatar(current_user.id)
+
+    # Get new default avatar URL
+    avatar_url = await user_service.get_user_avatar_url(current_user.id)
+
+    return ApiResponse(
+        message="Avatar deleted successfully, reset to default",
+        data={"avatar_url": avatar_url},
+    )
+
+
+@router.get("/{user_id}/avatar", response_model=ApiResponse[dict])
+async def get_user_avatar(
+    user_id: UUID,
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[dict]:
+    """
+    Get user avatar URL by user ID.
+
+    - **user_id**: UUID of the user
+
+    Returns avatar URL for the specified user.
+    """
+    avatar_url = await user_service.get_user_avatar_url(user_id)
+    return ApiResponse(
+        message="Avatar URL retrieved successfully",
+        data={"avatar_url": avatar_url},
     )
