@@ -75,7 +75,7 @@ EchoBrief revolutionizes news consumption by converting traditional text-based a
 ### Core Technologies
 - **Backend Framework**: [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework for Python
 - **Database**: [PostgreSQL 15](https://www.postgresql.org/) with [AsyncPG](https://github.com/MagicStack/asyncpg) driver
-- **Cache/Queue**: [Redis 7+](https://redis.io/) for caching, task queuing, and rate limitting
+- **Cache/Queue**: [Redis 7+](https://redis.io/) for caching and task queuing
 - **ORM**: [SQLModel](https://sqlmodel.tiangolo.com/) - SQL databases in Python, designed for FastAPI
 
 ### AI & Media Processing

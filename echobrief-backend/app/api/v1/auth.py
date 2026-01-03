@@ -50,9 +50,12 @@ async def register(
     """
     try:
         user = await user_service.create_user(user_data)
+        avatar_url = await user_service.get_user_avatar_url(user.id)
+        user_dict = user.model_dump()
+        user_dict['avatar_url'] = avatar_url
         return ApiResponse(
             message="User registered successfully",
-            data=UserResponse(**user.model_dump()),
+            data=UserResponse(**user_dict),
         )
     except HTTPException as e:
         # Re-raise HTTP exceptions
