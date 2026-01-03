@@ -49,9 +49,9 @@ Thumbs.db
 *.swp
 *.swo
 
-
+# Audio files
 audio/
-avatar/
+
 tests/
 
 command.txt

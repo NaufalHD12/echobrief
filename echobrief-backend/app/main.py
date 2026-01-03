@@ -17,6 +17,7 @@ from app.api.v1.system import router as system_router
 from app.api.v1.topics import router as topics_router
 from app.api.v1.users import router as users_router
 from app.core.database import engine
+from app.core.middleware import RateLimitMiddleware
 
 load_dotenv()
 
@@ -33,6 +34,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Add rate limiting middleware
+app.add_middleware(RateLimitMiddleware)
 
 # Include routers
 app.include_router(auth_router, prefix="/api/v1")

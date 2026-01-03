@@ -29,8 +29,6 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = ""
 
     PAYMENT_PLAN_MONTHLY_PRICE: float = 5.00
-    PAYMENT_PLAN_YEARLY_PRICE: float = 50.00
-    TRIAL_DAYS: int = 3
 
     # Email configuration
     SMTP_HOST: str = ""
