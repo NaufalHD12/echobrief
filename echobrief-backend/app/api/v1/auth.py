@@ -7,8 +7,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import (
     create_access_token,
-    create_refresh_token,
     create_password_reset_token,
+    create_refresh_token,
     exchange_code_for_token,
     get_google_auth_url,
     get_google_user_info,
@@ -20,10 +20,10 @@ from ...schemas.auth import (
     GoogleAuthURL,
     RefreshTokenRequest,
     ResetPasswordRequest,
-    Token
+    Token,
 )
 from ...schemas.common import ApiResponse
-from ...schemas.users import UserCreate, UserLogin, UserResponse, UserUpdate
+from ...schemas.users import UserCreate, UserLogin, UserResponse
 from ...services.user_service import UserService
 from ...tasks.email_tasks import send_password_reset_email_task
 
@@ -43,7 +43,7 @@ async def register(
 ) -> ApiResponse[UserResponse]:
     """
     Register new user.
-    
+
     - **email**: User email (must be valid email format)
     - **username**: Username (3-50 characters)
     - **password**: Password (min 8 characters, must contain uppercase, lowercase, number, and special character)
@@ -167,8 +167,7 @@ async def google_auth_callback(
         # Check for OAuth errors
         if error:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"OAuth error: {error}"
+                status_code=status.HTTP_400_BAD_REQUEST, detail=f"OAuth error: {error}"
             )
 
         # Exchange code for token
@@ -269,7 +268,7 @@ async def reset_password(
         if not token_data or not token_data.user_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired reset token"
+                detail="Invalid or expired reset token",
             )
 
         # Get user
@@ -277,6 +276,7 @@ async def reset_password(
 
         # Update password directly
         from ...core.security import hash_password
+
         hashed_password = hash_password(request.new_password)
 
         user.password_hash = hashed_password

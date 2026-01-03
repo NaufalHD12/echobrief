@@ -1,8 +1,8 @@
 from typing import Sequence
 
 from fastapi import HTTPException
-from sqlalchemy import func
 from slugify import slugify
+from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -86,7 +86,9 @@ class TopicService:
                 existing_result = await self.session.exec(existing_query)
                 existing = existing_result.first()
                 if existing:
-                    errors.append(f"Topic with slug '{slug}' at index {i} already exists")
+                    errors.append(
+                        f"Topic with slug '{slug}' at index {i} already exists"
+                    )
                     continue
 
                 topic = Topic(name=topic_data.name, slug=slug)
@@ -94,7 +96,9 @@ class TopicService:
                 created_topics.append(topic)
 
             except Exception as e:
-                errors.append(f"Error creating topic '{topic_data.name}' at index {i}: {str(e)}")
+                errors.append(
+                    f"Error creating topic '{topic_data.name}' at index {i}: {str(e)}"
+                )
 
         if created_topics:
             await self.session.commit()

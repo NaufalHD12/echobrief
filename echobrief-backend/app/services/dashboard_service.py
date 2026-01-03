@@ -52,7 +52,9 @@ class DashboardService:
         # Search articles (user can only see articles from their topics)
         user_topic_ids = await self._get_user_topic_ids(user_id)
         if user_topic_ids:
-            article_results = await self._search_articles(query_lower, user_topic_ids, skip, limit)
+            article_results = await self._search_articles(
+                query_lower, user_topic_ids, skip, limit
+            )
             results.extend(article_results)
 
         # Search topics
@@ -65,7 +67,9 @@ class DashboardService:
 
         # Sort by relevance (simple: articles first, then topics, then sources)
         # In a more advanced implementation, you could add scoring
-        sorted_results = sorted(results, key=lambda x: (x.type != "article", x.type != "topic"))
+        sorted_results = sorted(
+            results, key=lambda x: (x.type != "article", x.type != "topic")
+        )
 
         # Apply pagination after collecting all results
         total = len(sorted_results)
@@ -95,7 +99,9 @@ class DashboardService:
         # User info for plan and member since
         user = await self.session.get(User, user_id)
         plan_type = user.plan_type if user else "free"
-        member_since = user.created_at.strftime("%Y-%m-%d") if user and user.created_at else ""
+        member_since = (
+            user.created_at.strftime("%Y-%m-%d") if user and user.created_at else ""
+        )
 
         return DashboardStats(
             total_podcasts=total_podcasts,
@@ -105,7 +111,9 @@ class DashboardService:
             member_since=member_since,
         )
 
-    async def _get_recent_podcasts(self, user_id: UUID, limit: int = 5) -> Sequence[Podcast]:
+    async def _get_recent_podcasts(
+        self, user_id: UUID, limit: int = 5
+    ) -> Sequence[Podcast]:
         """Get user's recent podcasts"""
         query = (
             select(Podcast)
@@ -116,7 +124,9 @@ class DashboardService:
         result = await self.session.exec(query)
         return result.all()
 
-    async def _get_recent_articles_for_user(self, user_id: UUID, limit: int = 10) -> Sequence[Article]:
+    async def _get_recent_articles_for_user(
+        self, user_id: UUID, limit: int = 10
+    ) -> Sequence[Article]:
         """Get recent articles from user's favorite topics"""
         user_topic_ids = await self._get_user_topic_ids(user_id)
         if not user_topic_ids:
@@ -144,7 +154,9 @@ class DashboardService:
         result = await self.session.exec(query)
         return list(result.all())
 
-    async def _search_articles(self, query_lower: str, topic_ids: list[int], skip: int, limit: int) -> list[GlobalSearchResult]:
+    async def _search_articles(
+        self, query_lower: str, topic_ids: list[int], skip: int, limit: int
+    ) -> list[GlobalSearchResult]:
         """Search articles by title"""
         topic_attr = getattr(Article, "topic_id")
         query = select(Article).where(topic_attr.in_(topic_ids))
@@ -154,17 +166,21 @@ class DashboardService:
         results = []
         for article in articles:
             if query_lower in article.title.lower() and article.id is not None:
-                results.append(GlobalSearchResult(
-                    type="article",
-                    id=article.id,
-                    title=article.title,
-                    description=article.summary_text,
-                    url=article.url,
-                ))
+                results.append(
+                    GlobalSearchResult(
+                        type="article",
+                        id=article.id,
+                        title=article.title,
+                        description=article.summary_text,
+                        url=article.url,
+                    )
+                )
 
         return results[skip : skip + limit]
 
-    async def _search_topics(self, query_lower: str, skip: int, limit: int) -> list[GlobalSearchResult]:
+    async def _search_topics(
+        self, query_lower: str, skip: int, limit: int
+    ) -> list[GlobalSearchResult]:
         """Search topics by name"""
         query = select(Topic)
         result = await self.session.exec(query)
@@ -173,16 +189,20 @@ class DashboardService:
         results = []
         for topic in topics:
             if query_lower in topic.name.lower() and topic.id is not None:
-                results.append(GlobalSearchResult(
-                    type="topic",
-                    id=topic.id,
-                    title=topic.name,
-                    description=f"Topic slug: {topic.slug}",
-                ))
+                results.append(
+                    GlobalSearchResult(
+                        type="topic",
+                        id=topic.id,
+                        title=topic.name,
+                        description=f"Topic slug: {topic.slug}",
+                    )
+                )
 
         return results[skip : skip + limit]
 
-    async def _search_sources(self, query_lower: str, skip: int, limit: int) -> list[GlobalSearchResult]:
+    async def _search_sources(
+        self, query_lower: str, skip: int, limit: int
+    ) -> list[GlobalSearchResult]:
         """Search sources by name"""
         query = select(Source)
         result = await self.session.exec(query)
@@ -191,12 +211,14 @@ class DashboardService:
         results = []
         for source in sources:
             if query_lower in source.name.lower() and source.id is not None:
-                results.append(GlobalSearchResult(
-                    type="source",
-                    id=source.id,
-                    title=source.name,
-                    description=source.base_url,
-                    url=source.base_url,
-                ))
+                results.append(
+                    GlobalSearchResult(
+                        type="source",
+                        id=source.id,
+                        title=source.name,
+                        description=source.base_url,
+                        url=source.base_url,
+                    )
+                )
 
         return results[skip : skip + limit]

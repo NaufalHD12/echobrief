@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
-from PIL import Image
 import httpx
+from PIL import Image
 
 
 class AvatarService:
@@ -58,12 +58,14 @@ class AvatarService:
         filepath = user_dir / filename
 
         # Save SVG
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(svg_content)
 
         return filename
 
-    async def download_google_avatar(self, user_id: UUID, image_url: str) -> Optional[str]:
+    async def download_google_avatar(
+        self, user_id: UUID, image_url: str
+    ) -> Optional[str]:
         """
         Download avatar from Google profile picture URL
 
@@ -75,8 +77,8 @@ class AvatarService:
                 response.raise_for_status()
 
                 # Check content type
-                content_type = response.headers.get('content-type', '')
-                if not content_type.startswith('image/'):
+                content_type = response.headers.get("content-type", "")
+                if not content_type.startswith("image/"):
                     return None
 
                 # Get file extension
@@ -90,7 +92,7 @@ class AvatarService:
                 filepath = user_dir / filename
 
                 # Save image
-                with open(filepath, 'wb') as f:
+                with open(filepath, "wb") as f:
                     f.write(response.content)
 
                 # Validate image
@@ -110,11 +112,11 @@ class AvatarService:
     def _get_image_extension(self, content_type: str) -> Optional[str]:
         """Get file extension from content type"""
         extensions = {
-            'image/jpeg': 'jpg',
-            'image/jpg': 'jpg',
-            'image/png': 'png',
-            'image/gif': 'gif',
-            'image/webp': 'webp'
+            "image/jpeg": "jpg",
+            "image/jpg": "jpg",
+            "image/png": "png",
+            "image/gif": "gif",
+            "image/webp": "webp",
         }
         return extensions.get(content_type.lower())
 
@@ -131,7 +133,7 @@ class AvatarService:
 
     def delete_avatar(self, user_id: UUID, filename: str) -> bool:
         """Delete avatar file"""
-        if not filename or filename.startswith('default_'):
+        if not filename or filename.startswith("default_"):
             return False  # Don't delete default avatars
 
         filepath = self._get_user_avatar_dir(user_id) / filename

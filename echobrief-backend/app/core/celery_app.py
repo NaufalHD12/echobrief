@@ -24,4 +24,9 @@ celery_app.conf.beat_schedule = {
     },
 }
 
-celery_app.conf.imports = ("app.tasks.news_aggregation", "app.tasks.podcast_generation", "app.tasks.email_tasks", "app.tasks.subscription_management")
+celery_app.conf.imports = (
+    "app.tasks.news_aggregation",
+    "app.tasks.podcast_generation",
+    "app.tasks.email_tasks",
+    "app.tasks.subscription_management",
+)

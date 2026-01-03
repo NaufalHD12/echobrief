@@ -302,9 +302,6 @@ async def generate_audio(
     )
 
 
-
-
-
 @router.post(
     "/quick-generate",
     response_model=ApiResponse[PodcastResponse],

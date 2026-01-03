@@ -51,7 +51,9 @@ def create_refresh_token(data: dict[str, Any]) -> str:
 def create_password_reset_token(user_id: UUID) -> str:
     """Create JWT password reset token"""
     to_encode: dict[str, Any] = {"sub": str(user_id), "type": "password_reset"}
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+    )
     to_encode["exp"] = expire
     encoded_jwt = jwt.encode(
         to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
@@ -121,10 +123,10 @@ async def get_google_auth_url() -> str:
     """Generate Google OAuth authorization URL"""
     client = get_google_oauth_client()
     authorization_url, _ = client.create_authorization_url(
-        'https://accounts.google.com/o/oauth2/auth',
+        "https://accounts.google.com/o/oauth2/auth",
         redirect_uri=settings.GOOGLE_REDIRECT_URI,
-        scope=['openid', 'email', 'profile'],
-        state='random_state_string'  # In production, use proper state management
+        scope=["openid", "email", "profile"],
+        state="random_state_string",  # In production, use proper state management
     )
     return authorization_url
 
@@ -133,9 +135,9 @@ async def exchange_code_for_token(code: str) -> dict[str, Any]:
     """Exchange authorization code for access token"""
     client = get_google_oauth_client()
     token = await client.fetch_token(
-        'https://oauth2.googleapis.com/token',
+        "https://oauth2.googleapis.com/token",
         code=code,
-        redirect_uri=settings.GOOGLE_REDIRECT_URI
+        redirect_uri=settings.GOOGLE_REDIRECT_URI,
     )
     return token
 
@@ -143,7 +145,7 @@ async def exchange_code_for_token(code: str) -> dict[str, Any]:
 async def get_google_user_info(access_token: str) -> dict[str, Any]:
     """Get user info from Google using access token"""
     client = get_google_oauth_client()
-    client.token = {'access_token': access_token}
-    resp = await client.get('https://www.googleapis.com/oauth2/v2/userinfo')
+    client.token = {"access_token": access_token}
+    resp = await client.get("https://www.googleapis.com/oauth2/v2/userinfo")
     resp.raise_for_status()
     return resp.json()

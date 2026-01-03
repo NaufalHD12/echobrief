@@ -55,52 +55,57 @@ async def kofi_webhook(
     try:
         # Ko-fi sends application/x-www-form-urlencoded
         body_bytes = await request.body()
-        body_str = body_bytes.decode('utf-8')
-        
+        body_str = body_bytes.decode("utf-8")
+
         # Parse form-urlencoded data
         from urllib.parse import parse_qs
+
         parsed = parse_qs(body_str)
-        
-        if 'data' not in parsed:
+
+        if "data" not in parsed:
             raise HTTPException(status_code=400, detail="Missing data field")
-        
-        data_str = parsed['data'][0]
+
+        data_str = parsed["data"][0]
         if not data_str:
             raise HTTPException(status_code=400, detail="Empty data field")
-        
+
         # Parse JSON data from the 'data' field
         data = json.loads(data_str)
-        
+
         # Verify verification token
         verification_token = data.get("verification_token")
         if not verification_token:
             raise HTTPException(status_code=400, detail="Missing verification token")
-        
+
         if not verify_kofi_token(verification_token):
             raise HTTPException(status_code=401, detail="Invalid verification token")
-        
+
         event_type = data.get("type")
         message_id = data.get("message_id")
-        
-        logger.info(f"Received Ko-fi webhook: type={event_type}, message_id={message_id}")
-        
+
+        logger.info(
+            f"Received Ko-fi webhook: type={event_type}, message_id={message_id}"
+        )
+
         # Handle based on event type
         if event_type == "Subscription":
             await handle_kofi_subscription(data, subscription_service, user_service)
         elif event_type == "Donation":
-            logger.info(f"Donation received: {data.get('from_name')} - {data.get('amount')}")
+            logger.info(
+                f"Donation received: {data.get('from_name')} - {data.get('amount')}"
+            )
         elif event_type == "Commission":
             logger.info(f"Commission received: {data.get('from_name')}")
         elif event_type == "Shop Order":
             logger.info(f"Shop order received: {data.get('from_name')}")
         else:
             logger.warning(f"Unknown event type: {event_type}")
-        
+
         return ApiResponse(
-            message="Webhook processed successfully", 
-            data={"event_type": event_type, "message_id": message_id}
+            message="Webhook processed successfully",
+            data={"event_type": event_type, "message_id": message_id},
         )
-        
+
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON in data field")
     except Exception as e:
@@ -118,45 +123,57 @@ async def handle_kofi_subscription(
     is_first_subscription_payment = data.get("is_first_subscription_payment", False)
     tier_name = data.get("tier_name")
     amount = data.get("amount")
-    
+
     if not email:
         logger.warning(f"Missing email in subscription data: {data}")
         return
-    
+
     # Find user by email
     user = await user_service.get_user_by_email(email)
     if not user:
         logger.warning(f"User not found for email: {email}")
         return
-    
+
     logger.info(f"Processing subscription for user {user.id}, email: {email}")
-    logger.info(f"Transaction: {kofi_transaction_id}, First: {is_first_subscription_payment}, Recurring: {is_subscription_payment}")
-    
+    logger.info(
+        f"Transaction: {kofi_transaction_id}, First: {is_first_subscription_payment}, Recurring: {is_subscription_payment}"
+    )
+
     try:
         if is_first_subscription_payment:
             # New subscription
             if not kofi_transaction_id:
-                logger.error(f"Missing kofi_transaction_id for new subscription: {data}")
+                logger.error(
+                    f"Missing kofi_transaction_id for new subscription: {data}"
+                )
                 return
-            
+
             # Check if subscription already exists
-            existing = await subscription_service.get_subscription_by_kofi_transaction_id(kofi_transaction_id)
+            existing = (
+                await subscription_service.get_subscription_by_kofi_transaction_id(
+                    kofi_transaction_id
+                )
+            )
             if existing:
-                logger.info(f"Subscription already exists for transaction {kofi_transaction_id}")
+                logger.info(
+                    f"Subscription already exists for transaction {kofi_transaction_id}"
+                )
                 return
-            
+
             # Create new subscription
             subscription = await subscription_service.create_kofi_subscription(
                 user_id=user.id,
                 kofi_transaction_id=kofi_transaction_id,
                 tier_name=tier_name,
-                amount=amount
+                amount=amount,
             )
-            
+
             # Update user plan to paid
             user_update = UserUpdate(plan_type="paid")
             await user_service.update_user(
-                user.id, user_update, None  # No current user context for admin operation
+                user.id,
+                user_update,
+                None,  # No current user context for admin operation
             )
 
             # Send subscription success email
@@ -164,41 +181,57 @@ async def handle_kofi_subscription(
                 email, user.username, "paid", amount
             )
 
-            logger.info(f"Created new subscription {subscription.id} for user {user.id}")
-            
+            logger.info(
+                f"Created new subscription {subscription.id} for user {user.id}"
+            )
+
         elif is_subscription_payment:
             # Recurring payment for existing subscription
             if not kofi_transaction_id:
-                logger.error(f"Missing kofi_transaction_id for recurring payment: {data}")
+                logger.error(
+                    f"Missing kofi_transaction_id for recurring payment: {data}"
+                )
                 return
-            
+
             # Find subscription by transaction ID
-            subscription = await subscription_service.get_subscription_by_kofi_transaction_id(kofi_transaction_id)
+            subscription = (
+                await subscription_service.get_subscription_by_kofi_transaction_id(
+                    kofi_transaction_id
+                )
+            )
             if subscription:
                 # Update subscription status to active if it was cancelled
                 if subscription.status != SubscriptionStatus.active:
                     subscription.status = SubscriptionStatus.active
                     subscription.updated_at = datetime.now(timezone.utc)
                     await subscription_service.session.commit()
-                    logger.info(f"Reactivated subscription {subscription.id} for recurring payment")
+                    logger.info(
+                        f"Reactivated subscription {subscription.id} for recurring payment"
+                    )
                 else:
-                    logger.info(f"Subscription {subscription.id} already active for recurring payment")
+                    logger.info(
+                        f"Subscription {subscription.id} already active for recurring payment"
+                    )
             else:
-                logger.warning(f"No subscription found for transaction {kofi_transaction_id}, creating new one")
+                logger.warning(
+                    f"No subscription found for transaction {kofi_transaction_id}, creating new one"
+                )
                 # Create new subscription for recurring payment without first payment flag
                 subscription = await subscription_service.create_kofi_subscription(
                     user_id=user.id,
                     kofi_transaction_id=kofi_transaction_id,
                     tier_name=tier_name,
-                    amount=amount
+                    amount=amount,
                 )
-                logger.info(f"Created subscription {subscription.id} for recurring payment")
-        
+                logger.info(
+                    f"Created subscription {subscription.id} for recurring payment"
+                )
+
         else:
             # Subscription cancellation or other event
             # Ko-fi doesn't send explicit cancellation events, we need to handle via grace period
             logger.info(f"Non-payment subscription event: {data.get('type')}")
-            
+
     except Exception as e:
         logger.error(f"Error handling Ko-fi subscription: {e}", exc_info=True)
 

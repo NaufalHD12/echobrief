@@ -65,7 +65,7 @@ class SubscriptionService:
             raise HTTPException(status_code=404, detail="Subscription not found")
 
         now = datetime.now(timezone.utc)
-        
+
         # Set grace period (2 days from now)
         grace_period_end = now + timedelta(days=2)
 
@@ -77,11 +77,13 @@ class SubscriptionService:
         self.session.add(subscription)
         await self.session.commit()
         await self.session.refresh(subscription)
-        
+
         logger = logging.getLogger(__name__)
-        logger.info(f"Cancelled subscription: {subscription_id}, "
-                   f"end_date={grace_period_end}, grace_period_end={grace_period_end}")
-        
+        logger.info(
+            f"Cancelled subscription: {subscription_id}, "
+            f"end_date={grace_period_end}, grace_period_end={grace_period_end}"
+        )
+
         return subscription
 
     async def expire_subscription(self, subscription_id: str) -> UserSubscription:
@@ -98,10 +100,10 @@ class SubscriptionService:
         self.session.add(subscription)
         await self.session.commit()
         await self.session.refresh(subscription)
-        
+
         logger = logging.getLogger(__name__)
         logger.info(f"Expired subscription: {subscription_id}, end_date={now}")
-        
+
         return subscription
 
     async def check_and_update_expired_subscriptions(
@@ -139,10 +141,12 @@ class SubscriptionService:
                     self.session.add(user)
 
             await self.session.commit()
-            
+
             logger = logging.getLogger(__name__)
-            logger.info(f"Expired {len(expired_subs)} subscriptions: "
-                       f"{[str(sub.id) for sub in expired_subs]}")
+            logger.info(
+                f"Expired {len(expired_subs)} subscriptions: "
+                f"{[str(sub.id) for sub in expired_subs]}"
+            )
 
         return expired_subs
 
@@ -179,7 +183,9 @@ class SubscriptionService:
     ) -> UserSubscription:
         """Create new subscription from Ko-fi webhook"""
         # Check if subscription already exists
-        existing = await self.get_subscription_by_kofi_transaction_id(kofi_transaction_id)
+        existing = await self.get_subscription_by_kofi_transaction_id(
+            kofi_transaction_id
+        )
         if existing:
             raise HTTPException(status_code=400, detail="Subscription already exists")
 
@@ -199,12 +205,14 @@ class SubscriptionService:
         self.session.add(subscription)
         await self.session.commit()
         await self.session.refresh(subscription)
-        
+
         # Log additional info (could be stored in separate table if needed)
         if tier_name or amount:
             logger = logging.getLogger(__name__)
-            logger.info(f"Created Ko-fi subscription: transaction={kofi_transaction_id}, "
-                       f"user={user_id}, tier={tier_name}, amount={amount}, "
-                       f"end_date={end_date}")
-        
+            logger.info(
+                f"Created Ko-fi subscription: transaction={kofi_transaction_id}, "
+                f"user={user_id}, tier={tier_name}, amount={amount}, "
+                f"end_date={end_date}"
+            )
+
         return subscription

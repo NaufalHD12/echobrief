@@ -9,7 +9,12 @@ from ...core.database import get_session
 from ...models.users import User
 from ...schemas.articles import ArticleCreate, ArticleResponse, ArticleUpdate
 from ...schemas.common import ApiResponse
-from ...schemas.sources import SourceCreate, SourceCreateBulk, SourceResponse, SourceUpdate
+from ...schemas.sources import (
+    SourceCreate,
+    SourceCreateBulk,
+    SourceResponse,
+    SourceUpdate,
+)
 from ...schemas.topics import TopicCreate, TopicCreateBulk, TopicResponse, TopicUpdate
 from ...schemas.users import UserResponse, UserUpdate
 from ...services.article_service import ArticleService
@@ -67,7 +72,9 @@ async def get_subscription_service(
 
 @router.get("/users", response_model=ApiResponse[list[UserResponse]])
 async def get_users(
-    search: Annotated[str | None, Query(description="Search in username or email")] = None,
+    search: Annotated[
+        str | None, Query(description="Search in username or email")
+    ] = None,
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 10,
     current_user: User = Depends(get_current_admin),
@@ -200,7 +207,9 @@ async def create_source(
     )
 
 
-@router.post("/sources/bulk", response_model=ApiResponse[list[SourceResponse]], status_code=201)
+@router.post(
+    "/sources/bulk", response_model=ApiResponse[list[SourceResponse]], status_code=201
+)
 async def create_sources_bulk(
     bulk_data: SourceCreateBulk,
     service: Annotated[SourceService, Depends(get_source_service)],
@@ -272,7 +281,9 @@ async def create_topic(
     )
 
 
-@router.post("/topics/bulk", response_model=ApiResponse[list[TopicResponse]], status_code=201)
+@router.post(
+    "/topics/bulk", response_model=ApiResponse[list[TopicResponse]], status_code=201
+)
 async def create_topics_bulk(
     bulk_data: TopicCreateBulk,
     service: Annotated[TopicService, Depends(get_topic_service)],

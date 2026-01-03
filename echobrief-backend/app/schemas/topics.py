@@ -33,14 +33,8 @@ class TopicCreateBulk(BaseModel):
         "json_schema_extra": {
             "example": {
                 "topics": [
-                    {
-                        "name": "Technology",
-                        "slug": "technology"
-                    },
-                    {
-                        "name": "Science",
-                        "slug": "science"
-                    }
+                    {"name": "Technology", "slug": "technology"},
+                    {"name": "Science", "slug": "science"},
                 ]
             }
         }

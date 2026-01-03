@@ -1,7 +1,7 @@
-from typing import Annotated
-from uuid import UUID
 import os
 import tempfile
+from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -56,9 +56,7 @@ async def update_current_user_profile(
 
     Note: Regular users can only update their username.
     """
-    updated_user = await user_service.update_user_profile(
-        current_user.id, user_data
-    )
+    updated_user = await user_service.update_user_profile(current_user.id, user_data)
     avatar_url = await user_service.get_user_avatar_url(updated_user.id)
     user_data_dict = updated_user.model_dump()
     user_data_dict["avatar_url"] = avatar_url
@@ -89,23 +87,35 @@ async def complete_user_onboarding(
     # Parse topic_ids from comma-separated string
     try:
         if topic_ids.strip():
-            parsed_topic_ids = [int(x.strip()) for x in topic_ids.split(",") if x.strip()]
+            parsed_topic_ids = [
+                int(x.strip()) for x in topic_ids.split(",") if x.strip()
+            ]
         else:
             parsed_topic_ids = []
     except ValueError:
-        raise HTTPException(status_code=400, detail="topic_ids must be comma-separated integers")
+        raise HTTPException(
+            status_code=400, detail="topic_ids must be comma-separated integers"
+        )
 
     # Handle avatar upload if provided
     avatar_file_path = None
     if avatar:
         # Validate file type
-        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+        allowed_types = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+        ]
         if avatar.content_type not in allowed_types:
             raise HTTPException(status_code=400, detail="Unsupported avatar file type")
 
         # Save temporarily
         filename = avatar.filename or "avatar.jpg"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=f"_{filename}"
+        ) as temp_file:
             temp_file.write(await avatar.read())
             avatar_file_path = temp_file.name
 
@@ -180,7 +190,6 @@ async def get_user_topics(
     )
 
 
-
 @router.post("/me/avatar", response_model=ApiResponse[dict])
 async def upload_current_user_avatar(
     file: UploadFile = File(...),
@@ -199,7 +208,7 @@ async def upload_current_user_avatar(
     allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Unsupported file type")
-    
+
     filename = file.filename or "upload.jpg"
     with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
         temp_file.write(await file.read())

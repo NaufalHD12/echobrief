@@ -52,18 +52,18 @@ class DashboardResponse(BaseModel):
                     "role": "user",
                     "plan_type": "free",
                     "created_at": "2024-01-01T00:00:00Z",
-                    "last_login": "2024-01-15T10:30:00Z"
+                    "last_login": "2024-01-15T10:30:00Z",
                 },
                 "stats": {
                     "total_podcasts": 5,
                     "completed_podcasts": 4,
                     "total_topics": 3,
                     "plan_type": "free",
-                    "member_since": "2024-01-01"
+                    "member_since": "2024-01-01",
                 },
                 "recent_podcasts": [],
                 "recent_articles": [],
-                "favorite_topics": []
+                "favorite_topics": [],
             }
         }
     }

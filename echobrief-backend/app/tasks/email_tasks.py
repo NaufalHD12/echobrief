@@ -28,11 +28,17 @@ def send_password_reset_email_task(self, to_email: str, reset_token: str):
 
 @celery_app.task(bind=True, name="send_subscription_success_email")
 def send_subscription_success_email_task(
-    self, to_email: str, user_name: str, plan_type: str = "paid", amount: str | None = None
+    self,
+    to_email: str,
+    user_name: str,
+    plan_type: str = "paid",
+    amount: str | None = None,
 ):
     """Send subscription success email asynchronously"""
     try:
-        logger.info(f"Sending subscription success email to {to_email} for user {user_name}")
+        logger.info(
+            f"Sending subscription success email to {to_email} for user {user_name}"
+        )
         success = email_service.send_subscription_success_email(
             to_email, user_name, plan_type, amount
         )

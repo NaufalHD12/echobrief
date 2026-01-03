@@ -15,7 +15,11 @@ class ArticleService:
         self.session = session
 
     async def get_articles(
-        self, skip: int = 0, limit: int = 10, topic_id: int | None = None, search: str | None = None
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        topic_id: int | None = None,
+        search: str | None = None,
     ) -> tuple[Sequence[Article], int]:
         """Get paginated list of articles with optional filtering"""
         query = select(Article)

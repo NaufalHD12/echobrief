@@ -60,7 +60,9 @@ class SourceService:
         await self.session.refresh(source)
         return source
 
-    async def create_sources_bulk(self, sources_data: list[SourceCreate]) -> list[Source]:
+    async def create_sources_bulk(
+        self, sources_data: list[SourceCreate]
+    ) -> list[Source]:
         """Create multiple sources in bulk"""
         created_sources = []
         errors = []
@@ -83,7 +85,9 @@ class SourceService:
                 created_sources.append(source)
 
             except Exception as e:
-                errors.append(f"Error creating source '{source_data.name}' at index {i}: {str(e)}")
+                errors.append(
+                    f"Error creating source '{source_data.name}' at index {i}: {str(e)}"
+                )
 
         if created_sources:
             await self.session.commit()

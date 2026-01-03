@@ -94,7 +94,9 @@ async def global_search(
     Results are sorted by relevance (articles first, then topics, then sources).
     """
     skip = (page - 1) * per_page
-    search_results, total = await service.global_search(q, current_user.id, skip, per_page)
+    search_results, total = await service.global_search(
+        q, current_user.id, skip, per_page
+    )
 
     return ApiResponse(
         message=f"Found {total} results for '{q}'",

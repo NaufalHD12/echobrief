@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Sequence
 from uuid import UUID
 
@@ -6,8 +7,6 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from pathlib import Path
 
 from ..core.config import settings
 from ..core.security import hash_password, verify_password
@@ -82,7 +81,7 @@ class UserService:
             raise HTTPException(status_code=400, detail="Google account already linked")
 
         # Generate unique username from name
-        base_username = name.lower().replace(' ', '_').replace('-', '_')
+        base_username = name.lower().replace(" ", "_").replace("-", "_")
         username = base_username
         counter = 1
         while await self.get_user_by_username(username):
@@ -101,7 +100,9 @@ class UserService:
         await self.session.refresh(user)
         return user
 
-    async def get_or_create_oauth_user(self, google_id: str, email: str, name: str, picture_url: str | None = None) -> User:
+    async def get_or_create_oauth_user(
+        self, google_id: str, email: str, name: str, picture_url: str | None = None
+    ) -> User:
         """Get existing OAuth user or create new one"""
         # Try to find by Google ID first
         user = await self.get_user_by_google_id(google_id)
@@ -113,9 +114,14 @@ class UserService:
         if existing_user:
             # Link Google account to existing user
             if existing_user.google_id:
-                raise HTTPException(status_code=400, detail="Google account already linked to another user")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Google account already linked to another user",
+                )
             existing_user.google_id = google_id
-            existing_user.auth_provider = "google"  # Update to indicate OAuth capability
+            existing_user.auth_provider = (
+                "google"  # Update to indicate OAuth capability
+            )
             self.session.add(existing_user)
             await self.session.commit()
             await self.session.refresh(existing_user)
@@ -127,7 +133,9 @@ class UserService:
         # Try to download Google avatar if available
         if picture_url:
             try:
-                avatar_filename = await self.avatar_service.download_google_avatar(user.id, picture_url)
+                avatar_filename = await self.avatar_service.download_google_avatar(
+                    user.id, picture_url
+                )
                 if avatar_filename:
                     user.avatar_filename = avatar_filename
                     self.session.add(user)
@@ -147,9 +155,7 @@ class UserService:
             return None
         return user
 
-    async def update_user_profile(
-        self, user_id: UUID, user_data: UserUpdate
-    ) -> User:
+    async def update_user_profile(self, user_id: UUID, user_data: UserUpdate) -> User:
         """Update user profile (self-update, limited fields)"""
         user = await self.get_user_by_id(user_id)
 
@@ -174,9 +180,7 @@ class UserService:
         await self.session.refresh(user)
         return user
 
-    async def update_user_admin(
-        self, user_id: UUID, user_data: UserUpdate
-    ) -> User:
+    async def update_user_admin(self, user_id: UUID, user_data: UserUpdate) -> User:
         """Update user profile (admin operation, all fields allowed)"""
         user = await self.get_user_by_id(user_id)
 
@@ -281,7 +285,9 @@ class UserService:
         await self.session.delete(user_topic)
         await self.session.commit()
 
-    async def get_all_users(self, search: str | None = None, skip: int = 0, limit: int = 10) -> tuple[Sequence[User], int]:
+    async def get_all_users(
+        self, search: str | None = None, skip: int = 0, limit: int = 10
+    ) -> tuple[Sequence[User], int]:
         """Get all users (admin only) with optional search"""
         query = select(User)
 
@@ -289,8 +295,8 @@ class UserService:
             search_lower = search.lower()
             # Search in username and email using case-insensitive comparison
             query = query.where(
-                (func.lower(User.username).like(f"%{search_lower}%")) |
-                (func.lower(User.email).like(f"%{search_lower}%"))
+                (func.lower(User.username).like(f"%{search_lower}%"))
+                | (func.lower(User.email).like(f"%{search_lower}%"))
             )
 
         # Get total count
@@ -319,7 +325,9 @@ class UserService:
             await self.session.commit()
             return f"/avatars/{user_id}/{filename}"
 
-    async def upload_user_avatar(self, user_id: UUID, file_path: str, filename: str) -> str:
+    async def upload_user_avatar(
+        self, user_id: UUID, file_path: str, filename: str
+    ) -> str:
         """Upload user avatar"""
         # Validate file
         if not self.avatar_service.validate_image_file(Path(file_path)):
@@ -327,8 +335,9 @@ class UserService:
 
         # Generate new filename with timestamp
         import time
+
         timestamp = int(time.time())
-        ext = filename.split('.')[-1].lower()
+        ext = filename.split(".")[-1].lower()
         new_filename = f"upload_{timestamp}.{ext}"
 
         # Move file to avatar directory
@@ -336,6 +345,7 @@ class UserService:
         new_filepath = user_dir / new_filename
 
         import shutil
+
         shutil.move(file_path, new_filepath)
 
         # Update user avatar filename
@@ -350,7 +360,7 @@ class UserService:
         """Delete user avatar (back to default)"""
         user = await self.get_user_by_id(user_id)
 
-        if user.avatar_filename and not user.avatar_filename.startswith('default_'):
+        if user.avatar_filename and not user.avatar_filename.startswith("default_"):
             # Delete file
             self.avatar_service.delete_avatar(user_id, user.avatar_filename)
 
@@ -361,7 +371,11 @@ class UserService:
             await self.session.commit()
 
     async def complete_onboarding(
-        self, user_id: UUID, plan_type: str, topic_ids: list[int], avatar_file_path: str | None = None
+        self,
+        user_id: UUID,
+        plan_type: str,
+        topic_ids: list[int],
+        avatar_file_path: str | None = None,
     ) -> dict:
         """Complete user onboarding: set plan, avatar, and topics"""
 
@@ -369,7 +383,9 @@ class UserService:
 
         # Validate plan_type
         if plan_type not in ["free", "paid"]:
-            raise HTTPException(status_code=400, detail="plan_type must be 'free' or 'paid'")
+            raise HTTPException(
+                status_code=400, detail="plan_type must be 'free' or 'paid'"
+            )
 
         # Set plan_type: always "free" initially, subscription will upgrade later
         user.plan_type = "free"
@@ -377,7 +393,9 @@ class UserService:
 
         # Handle avatar if provided
         if avatar_file_path:
-            avatar_url = await self.upload_user_avatar(user_id, avatar_file_path, "onboarding.jpg")
+            avatar_url = await self.upload_user_avatar(
+                user_id, avatar_file_path, "onboarding.jpg"
+            )
         else:
             avatar_url = await self.get_user_avatar_url(user_id)
 
@@ -411,7 +429,9 @@ class UserService:
         await self.session.commit()
 
         # Return payment URL if paid plan was selected
-        payment_url = settings.KOFI_URL if plan_type == "paid" and settings.KOFI_URL else None
+        payment_url = (
+            settings.KOFI_URL if plan_type == "paid" and settings.KOFI_URL else None
+        )
 
         return {
             "avatar_url": avatar_url,

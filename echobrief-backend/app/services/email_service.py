@@ -23,8 +23,7 @@ class EmailService:
 
         # Setup Jinja2 template environment
         self.template_env = Environment(
-            loader=FileSystemLoader("app/templates/email"),
-            autoescape=True
+            loader=FileSystemLoader("app/templates/email"), autoescape=True
         )
 
     def _get_smtp_connection(self):
@@ -54,23 +53,23 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: str | None = None
+        text_content: str | None = None,
     ) -> bool:
         """Send email synchronously"""
         try:
             # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
-            msg['To'] = to_email
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"{self.from_name} <{self.from_email}>"
+            msg["To"] = to_email
 
             # Add text content
             if text_content:
-                text_part = MIMEText(text_content, 'plain')
+                text_part = MIMEText(text_content, "plain")
                 msg.attach(text_part)
 
             # Add HTML content
-            html_part = MIMEText(html_content, 'html')
+            html_part = MIMEText(html_content, "html")
             msg.attach(html_part)
 
             # Send email
@@ -90,7 +89,7 @@ class EmailService:
 
         context = {
             "reset_url": reset_url,
-            "token_expiry_minutes": settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+            "token_expiry_minutes": settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
         }
 
         html_content = self._render_template("password_reset", context)
@@ -114,7 +113,7 @@ class EmailService:
             to_email=to_email,
             subject="Reset Your EchoBrief Password",
             html_content=html_content,
-            text_content=text_content
+            text_content=text_content,
         )
 
     def send_subscription_success_email(
@@ -122,14 +121,10 @@ class EmailService:
         to_email: str,
         user_name: str,
         plan_type: str = "paid",
-        amount: str | None = None
+        amount: str | None = None,
     ) -> bool:
         """Send subscription success email"""
-        context = {
-            "user_name": user_name,
-            "plan_type": plan_type,
-            "amount": amount
-        }
+        context = {"user_name": user_name, "plan_type": plan_type, "amount": amount}
 
         html_content = self._render_template("subscription_success", context)
         text_content = f"""
@@ -157,7 +152,7 @@ class EmailService:
             to_email=to_email,
             subject="Payment Successful - Welcome to EchoBrief Premium!",
             html_content=html_content,
-            text_content=text_content
+            text_content=text_content,
         )
 
 
