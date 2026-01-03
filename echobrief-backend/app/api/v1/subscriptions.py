@@ -16,6 +16,7 @@ from ...schemas.subscriptions import UserSubscriptionResponse
 from ...schemas.users import UserUpdate
 from ...services.subscription_service import SubscriptionService
 from ...services.user_service import UserService
+from ...tasks.email_tasks import send_subscription_success_email_task
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,12 @@ async def handle_kofi_subscription(
             await user_service.update_user(
                 user.id, user_update, None  # No current user context for admin operation
             )
-            
+
+            # Send subscription success email
+            send_subscription_success_email_task.delay(
+                email, user.username, "paid", amount
+            )
+
             logger.info(f"Created new subscription {subscription.id} for user {user.id}")
             
         elif is_subscription_payment:

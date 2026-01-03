@@ -49,12 +49,15 @@ Thumbs.db
 *.swp
 *.swo
 
-# Audio files
-audio/
 
+audio/
+avatar/
 tests/
 
 command.txt
 EchoBrief_SRS.md
 ERD.mermaid
 el-quickstart.md
+client_secret_2_481374503478-vgte4t4d2us27fj6ksr9gm1826j520qc.apps.googleusercontent.com.json
+open_api.json
+user_flow_diagram.mermaid

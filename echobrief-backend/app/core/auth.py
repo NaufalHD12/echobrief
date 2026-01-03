@@ -48,6 +48,18 @@ def create_refresh_token(data: dict[str, Any]) -> str:
     return encoded_jwt
 
 
+def create_password_reset_token(user_id: UUID) -> str:
+    """Create JWT password reset token"""
+    to_encode: dict[str, Any] = {"sub": str(user_id), "type": "password_reset"}
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+    to_encode["exp"] = expire
+    encoded_jwt = jwt.encode(
+        to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
+
+    return encoded_jwt
+
+
 def verify_token(token: str, token_type: str = "access") -> TokenData | None:
     """Verify and decode JWT token"""
     try:

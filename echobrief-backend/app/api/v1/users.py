@@ -1,7 +1,9 @@
 from typing import Annotated
 from uuid import UUID
+import os
+import tempfile
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import get_current_user
@@ -9,7 +11,7 @@ from ...core.database import get_session
 from ...models.users import User
 from ...schemas.common import ApiResponse
 from ...schemas.topics import TopicResponse
-from ...schemas.users import UserResponse, UserUpdate
+from ...schemas.users import OnboardingResponse, UserResponse, UserUpdate
 from ...services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -24,15 +26,20 @@ async def get_user_service(
 @router.get("/me", response_model=ApiResponse[UserResponse])
 async def get_current_user_profile(
     current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
 ) -> ApiResponse[UserResponse]:
     """
     Get current user profile.
 
-    Returns user information including email, username, role, plan_type, and timestamps.
+    Returns user information including email, username, role, plan_type, avatar, and timestamps.
     """
+    avatar_url = await user_service.get_user_avatar_url(current_user.id)
+    user_data = current_user.model_dump()
+    user_data["avatar_url"] = avatar_url
+
     return ApiResponse(
         message="Profile retrieved successfully",
-        data=UserResponse(**current_user.model_dump()),
+        data=UserResponse(**user_data),
     )
 
 
@@ -52,12 +59,70 @@ async def update_current_user_profile(
     updated_user = await user_service.update_user_profile(
         current_user.id, user_data
     )
+    avatar_url = await user_service.get_user_avatar_url(updated_user.id)
+    user_data_dict = updated_user.model_dump()
+    user_data_dict["avatar_url"] = avatar_url
+
     return ApiResponse(
         message="Profile updated successfully",
-        data=UserResponse(**updated_user.model_dump()),
+        data=UserResponse(**user_data_dict),
     )
 
 
+@router.post("/onboarding", response_model=ApiResponse[OnboardingResponse])
+async def complete_user_onboarding(
+    plan_type: str,
+    topic_ids: str,  # Comma-separated string of topic IDs (e.g., "1,2,3")
+    avatar: UploadFile | None = File(None),
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[OnboardingResponse]:
+    """
+    Complete user onboarding process.
+
+    - **plan_type**: Plan type selection ("free" or "paid")
+    - **topic_ids**: Comma-separated string of topic IDs (e.g., "1,2,3")
+    - **avatar**: Optional avatar image file
+
+    This endpoint handles avatar upload, plan selection, and favorite topic setup in one request.
+    """
+    # Parse topic_ids from comma-separated string
+    try:
+        if topic_ids.strip():
+            parsed_topic_ids = [int(x.strip()) for x in topic_ids.split(",") if x.strip()]
+        else:
+            parsed_topic_ids = []
+    except ValueError:
+        raise HTTPException(status_code=400, detail="topic_ids must be comma-separated integers")
+
+    # Handle avatar upload if provided
+    avatar_file_path = None
+    if avatar:
+        # Validate file type
+        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+        if avatar.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Unsupported avatar file type")
+
+        # Save temporarily
+        filename = avatar.filename or "avatar.jpg"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
+            temp_file.write(await avatar.read())
+            avatar_file_path = temp_file.name
+
+    try:
+        # Complete onboarding
+        result = await user_service.complete_onboarding(
+            current_user.id, plan_type, parsed_topic_ids, avatar_file_path
+        )
+
+        return ApiResponse(
+            message="Onboarding completed successfully",
+            data=OnboardingResponse(**result),
+        )
+    finally:
+        # Clean up temp file
+        if avatar_file_path and os.path.exists(avatar_file_path):
+            os.unlink(avatar_file_path)
 
 
 @router.post("/topics", response_model=ApiResponse[dict])
@@ -115,22 +180,6 @@ async def get_user_topics(
     )
 
 
-@router.get("/me/avatar", response_model=ApiResponse[dict])
-async def get_current_user_avatar(
-    current_user: User = Depends(get_current_user),
-    user_service: UserService = Depends(get_user_service),
-) -> ApiResponse[dict]:
-    """
-    Get current user's avatar URL.
-
-    Returns avatar URL that can be used to display the user's profile picture.
-    """
-    avatar_url = await user_service.get_user_avatar_url(current_user.id)
-    return ApiResponse(
-        message="Avatar URL retrieved successfully",
-        data={"avatar_url": avatar_url},
-    )
-
 
 @router.post("/me/avatar", response_model=ApiResponse[dict])
 async def upload_current_user_avatar(
@@ -149,13 +198,8 @@ async def upload_current_user_avatar(
     # Validate file type
     allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed_types:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Unsupported file type")
-
-    # Save uploaded file temporarily
-    import tempfile
-    import os
-
+    
     filename = file.filename or "upload.jpg"
     with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
         temp_file.write(await file.read())

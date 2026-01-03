@@ -9,6 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from pathlib import Path
 
+from ..core.config import settings
 from ..core.security import hash_password, verify_password
 from ..models.topics import Topic
 from ..models.users import User, UserTopic
@@ -358,3 +359,63 @@ class UserService:
             user.avatar_filename = filename
             self.session.add(user)
             await self.session.commit()
+
+    async def complete_onboarding(
+        self, user_id: UUID, plan_type: str, topic_ids: list[int], avatar_file_path: str | None = None
+    ) -> dict:
+        """Complete user onboarding: set plan, avatar, and topics"""
+
+        user = await self.get_user_by_id(user_id)
+
+        # Validate plan_type
+        if plan_type not in ["free", "paid"]:
+            raise HTTPException(status_code=400, detail="plan_type must be 'free' or 'paid'")
+
+        # Set plan_type: always "free" initially, subscription will upgrade later
+        user.plan_type = "free"
+        self.session.add(user)
+
+        # Handle avatar if provided
+        if avatar_file_path:
+            avatar_url = await self.upload_user_avatar(user_id, avatar_file_path, "onboarding.jpg")
+        else:
+            avatar_url = await self.get_user_avatar_url(user_id)
+
+        # Clear existing topics
+        query = select(UserTopic).where(UserTopic.user_id == user_id)
+        result = await self.session.exec(query)
+        existing_topics = result.all()
+        for topic in existing_topics:
+            await self.session.delete(topic)
+
+        # Add new topics
+        selected_topic_ids = []
+        subscription_service = SubscriptionService(self.session)
+        effective_plan = await subscription_service.get_user_plan_type(user_id)
+
+        for topic_id in topic_ids:
+            # Validate topic exists
+            topic = await self.session.get(Topic, topic_id)
+            if not topic:
+                continue  # Skip invalid topics
+
+            # Check plan limits
+            if effective_plan == "free" and len(selected_topic_ids) >= 3:
+                break  # Free plan limited to 3 topics
+
+            # Add topic
+            user_topic = UserTopic(user_id=user_id, topic_id=topic_id)
+            self.session.add(user_topic)
+            selected_topic_ids.append(topic_id)
+
+        await self.session.commit()
+
+        # Return payment URL if paid plan was selected
+        payment_url = settings.KOFI_URL if plan_type == "paid" and settings.KOFI_URL else None
+
+        return {
+            "avatar_url": avatar_url,
+            "plan_type": "free",  # Always free initially
+            "selected_topics": selected_topic_ids,
+            "payment_url": payment_url,
+        }

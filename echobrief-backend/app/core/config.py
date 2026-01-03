@@ -32,6 +32,18 @@ class Settings(BaseSettings):
     PAYMENT_PLAN_YEARLY_PRICE: float = 50.00
     TRIAL_DAYS: int = 3
 
+    # Email configuration
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_TLS: bool = True
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "EchoBrief"
+
+    # Password reset
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=False, extra="ignore"
     )

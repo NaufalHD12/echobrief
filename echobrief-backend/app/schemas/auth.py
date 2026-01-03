@@ -54,3 +54,16 @@ class OAuthCallback(BaseModel):
 
     code: Annotated[str, MinLen(10), MaxLen(1000)] = Field(description="Authorization code from Google")
     state: str | None = Field(default=None, description="State parameter for CSRF protection")
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request schema for password reset"""
+
+    email: str = Field(description="User email address")
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request schema for resetting password with token"""
+
+    token: str = Field(description="Password reset token")
+    new_password: Annotated[str, MinLen(8), MaxLen(100)] = Field(description="New password")

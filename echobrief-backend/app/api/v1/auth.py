@@ -8,16 +8,24 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from ...core.auth import (
     create_access_token,
     create_refresh_token,
+    create_password_reset_token,
     exchange_code_for_token,
     get_google_auth_url,
     get_google_user_info,
     verify_token,
 )
 from ...core.database import get_session
-from ...schemas.auth import GoogleAuthURL, RefreshTokenRequest, Token
+from ...schemas.auth import (
+    ForgotPasswordRequest,
+    GoogleAuthURL,
+    RefreshTokenRequest,
+    ResetPasswordRequest,
+    Token
+)
 from ...schemas.common import ApiResponse
-from ...schemas.users import UserCreate, UserLogin, UserResponse
+from ...schemas.users import UserCreate, UserLogin, UserResponse, UserUpdate
 from ...services.user_service import UserService
+from ...tasks.email_tasks import send_password_reset_email_task
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -201,4 +209,91 @@ async def google_auth_callback(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Google authentication failed",
+        )
+
+
+@router.post("/forgot-password", response_model=ApiResponse[dict])
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[dict]:
+    """
+    Request password reset.
+
+    - **email**: User email address
+
+    If the email exists, a password reset link will be sent.
+    For security reasons, the response is the same regardless of whether the email exists.
+    """
+    try:
+        # Check if user exists
+        user = await user_service.get_user_by_email(request.email)
+
+        if user:
+            # Generate reset token
+            reset_token = create_password_reset_token(user.id)
+
+            # Send email asynchronously via Celery
+            send_password_reset_email_task.delay(request.email, reset_token)
+
+        # Always return the same response for security
+        return ApiResponse(
+            message="If an account with this email exists, a password reset link has been sent.",
+            data={"email": request.email},
+        )
+
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error during password reset request: {e}")
+        # Don't reveal errors to prevent email enumeration
+        return ApiResponse(
+            message="If an account with this email exists, a password reset link has been sent.",
+            data={"email": request.email},
+        )
+
+
+@router.post("/reset-password", response_model=ApiResponse[dict])
+async def reset_password(
+    request: ResetPasswordRequest,
+    user_service: UserService = Depends(get_user_service),
+) -> ApiResponse[dict]:
+    """
+    Reset password using token.
+
+    - **token**: Password reset token from email
+    - **new_password**: New password (min 8 characters)
+    """
+    try:
+        # Verify token
+        token_data = verify_token(request.token, "password_reset")
+        if not token_data or not token_data.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+
+        # Get user
+        user = await user_service.get_user_by_id(token_data.user_id)
+
+        # Update password directly
+        from ...core.security import hash_password
+        hashed_password = hash_password(request.new_password)
+
+        user.password_hash = hashed_password
+        await user_service.session.commit()
+
+        return ApiResponse(
+            message="Password has been reset successfully",
+            data={"user_id": str(token_data.user_id)},
+        )
+
+    except HTTPException as e:
+        # Re-raise HTTP exceptions
+        raise e
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error during password reset: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Password reset failed due to server error",
         )
