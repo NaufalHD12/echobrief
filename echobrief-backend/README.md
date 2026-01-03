@@ -75,7 +75,7 @@ EchoBrief revolutionizes news consumption by converting traditional text-based a
 ### Core Technologies
 - **Backend Framework**: [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework for Python
 - **Database**: [PostgreSQL 15](https://www.postgresql.org/) with [AsyncPG](https://github.com/MagicStack/asyncpg) driver
-- **Cache/Queue**: [Redis 7+](https://redis.io/) for caching and task queuing
+- **Cache/Queue**: [Redis 7+](https://redis.io/) for caching, task queuing, and rate limitting
 - **ORM**: [SQLModel](https://sqlmodel.tiangolo.com/) - SQL databases in Python, designed for FastAPI
 
 ### AI & Media Processing
@@ -100,81 +100,161 @@ EchoBrief revolutionizes news consumption by converting traditional text-based a
 
 ## API Endpoints Overview
 
-### Authentication (`/api/v1/auth`)
+The EchoBrief API is organized into several functional areas. All endpoints return JSON responses with a consistent structure including `message`, `data`, and optional pagination metadata. Authentication is required for most endpoints using JWT tokens.
+
+### Authentication Endpoints (`/auth`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/auth/register` | Register a new user account | No |
+| `POST` | `/auth/login` | Authenticate user and return access/refresh tokens | No |
+| `POST` | `/auth/refresh` | Refresh access token using refresh token | No |
+| `GET` | `/auth/google` | Get Google OAuth authorization URL | No |
+| `GET` | `/auth/google/callback` | Handle Google OAuth callback and authenticate user | No |
+| `POST` | `/auth/forgot-password` | Request password reset email | No |
+| `POST` | `/auth/reset-password` | Reset password using reset token | No |
+
+### User Management Endpoints (`/users`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/users/me` | Get current user profile information | Yes |
+| `PUT` | `/users/me` | Update current user profile (username only) | Yes |
+| `POST` | `/users/onboarding` | Complete user onboarding (plan selection, topics, avatar) | Yes |
+| `POST` | `/users/topics` | Add topic to user's favorite topics | Yes |
+| `DELETE` | `/users/topics/{topic_id}` | Remove topic from user's favorite topics | Yes |
+| `GET` | `/users/topics` | Get user's favorite topics | Yes |
+| `POST` | `/users/me/avatar` | Upload user avatar image | Yes |
+| `DELETE` | `/users/me/avatar` | Delete user avatar (reset to default) | Yes |
+| `GET` | `/users/{user_id}/avatar` | Get user avatar URL by user ID | Yes |
+
+### Content Endpoints
+
+#### Topics (`/topics`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/topics/` | Get paginated list of all topics with optional search | Yes |
+| `GET` | `/topics/{topic_id}` | Get topic details by ID | Yes |
+| `GET` | `/topics/slug/{slug}` | Get topic details by slug | Yes |
+
+#### Articles (`/articles`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/articles/` | Get paginated list of articles with optional search and topic filtering | Yes |
+| `GET` | `/articles/{article_id}` | Get article details by ID | Yes |
+
+#### Sources (`/sources`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/sources/` | Get paginated list of all news sources | Yes |
+| `GET` | `/sources/{source_id}` | Get source details by ID | Yes |
+
+### Podcast Endpoints (`/podcasts`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/podcasts/` | Create a new podcast request (uses user's favorite topics if none specified) | Yes |
+| `GET` | `/podcasts/` | Get paginated list of user's podcasts with optional search | Yes |
+| `GET` | `/podcasts/{podcast_id}` | Get podcast details by ID | Yes |
+| `POST` | `/podcasts/{podcast_id}/generate-script` | Generate AI script for a podcast | Yes |
+| `POST` | `/podcasts/{podcast_id}/generate-audio` | Generate audio file for a podcast using TTS | Yes |
+| `POST` | `/podcasts/quick-generate` | Quick podcast generation with caching support | Yes |
+
+### Dashboard & Search Endpoints (`/dashboard`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/dashboard/` | Get user dashboard with statistics, recent podcasts, articles, and favorite topics | Yes |
+| `GET` | `/dashboard/search` | Global search across articles, topics, and sources | Yes |
+
+### Subscription Endpoints (`/subscriptions`)
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/subscriptions/webhooks/kofi` | Handle Ko-fi payment webhooks | No |
+| `GET` | `/subscriptions/me` | Get current user's active subscription | Yes |
+| `GET` | `/subscriptions/plan-type` | Get user's effective plan type (free/paid) | Yes |
+
+### Admin Endpoints (`/admin`) - Admin Only
+
+#### User Management
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/register` | User registration with validation |
-| `POST` | `/login` | JWT token generation |
-| `POST` | `/refresh` | Access token refresh |
-| `GET` | `/google` | Google OAuth URL generation |
-| `GET` | `/google/callback` | OAuth callback handling |
-| `POST` | `/forgot-password` | Password reset request |
-| `POST` | `/reset-password` | Password reset confirmation |
+| `GET` | `/admin/users` | Get paginated list of all users with optional search |
+| `PUT` | `/admin/users/{user_id}` | Update user profile (username, plan_type, role) |
 
-### User Management (`/api/v1/users`)
+#### Content Management
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/profile` | Get user profile information |
-| `PUT` | `/profile` | Update user profile |
-| `POST` | `/avatar` | Upload custom avatar |
-| `DELETE` | `/avatar` | Remove current avatar |
-| `POST` | `/onboarding` | Complete user onboarding |
+| `POST` | `/admin/articles` | Create a new article |
+| `PUT` | `/admin/articles/{article_id}` | Update article information |
+| `DELETE` | `/admin/articles/{article_id}` | Delete an article |
+| `POST` | `/admin/sources` | Create a new news source |
+| `POST` | `/admin/sources/bulk` | Create multiple sources in bulk |
+| `PUT` | `/admin/sources/{source_id}` | Update source information |
+| `DELETE` | `/admin/sources/{source_id}` | Delete a source |
+| `POST` | `/admin/topics` | Create a new topic |
+| `POST` | `/admin/topics/bulk` | Create multiple topics in bulk |
+| `PUT` | `/admin/topics/{topic_id}` | Update topic information |
+| `DELETE` | `/admin/topics/{topic_id}` | Delete a topic |
 
-### Content Management
-#### Articles (`/api/v1/articles`)
-- CRUD operations for news articles
-- Filtering by topics, sources, and date ranges
+#### Podcast Management
 
-#### Sources (`/api/v1/sources`)
-- RSS source configuration and management
-- Bulk import/export capabilities
-
-#### Topics (`/api/v1/topics`)
-- News category management
-- User topic preferences
-
-#### Podcasts (`/api/v1/podcasts`)
-- Podcast generation requests
-- Audio file management and streaming
-- Generation status tracking
-
-### Dashboard (`/api/v1/dashboard`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/stats` | User dashboard statistics |
-| `GET` | `/search` | Global content search |
+| `DELETE` | `/admin/podcasts/{podcast_id}` | Delete a podcast and all related data |
 
-### Subscriptions (`/api/v1/subscriptions`)
+#### System Operations
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/create` | Create new subscription |
-| `GET` | `/status` | Current subscription details |
-| `DELETE` | `/cancel` | Cancel active subscription |
+| `POST` | `/admin/system/aggregate-news` | Trigger news aggregation process |
+| `POST` | `/admin/subscriptions/check-expired` | Check and update expired subscriptions |
 
-### Admin Panel (`/api/v1/admin`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/users` | List all users with pagination |
-| `PUT` | `/users/{id}` | Update user details/roles |
-| `POST` | `/articles` | Create new articles |
-| `PUT` | `/articles/{id}` | Update article information |
-| `DELETE` | `/articles/{id}` | Remove articles |
-| `POST` | `/sources` | Add news sources |
-| `POST` | `/sources/bulk` | Bulk source import |
-| `PUT` | `/sources/{id}` | Update source details |
-| `DELETE` | `/sources/{id}` | Remove sources |
-| `POST` | `/topics` | Create news topics |
-| `POST` | `/topics/bulk` | Bulk topic import |
-| `PUT` | `/topics/{id}` | Update topic information |
-| `DELETE` | `/topics/{id}` | Remove topics |
-| `DELETE` | `/podcasts/{id}` | Delete podcast content |
-| `POST` | `/system/aggregate-news` | Trigger news aggregation |
-| `POST` | `/subscriptions/check-expired` | Process expired subscriptions |
+### Response Format
 
-### System (`/api/v1/system`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health/db` | Database health check |
+All API responses follow a consistent JSON structure:
+
+```json
+{
+  "message": "Operation completed successfully",
+  "data": {
+    // Response data varies by endpoint
+  }
+}
+```
+
+Paginated endpoints include additional metadata:
+
+```json
+{
+  "message": "Items retrieved successfully",
+  "data": {
+    "items": [...],
+    "total": 150,
+    "page": 1,
+    "per_page": 10
+  }
+}
+```
+
+### Authentication
+
+Most endpoints require authentication via JWT tokens in the `Authorization` header:
+```
+Authorization: Bearer <access_token>
+```
+
+Admin endpoints additionally require the user to have admin role (`role: "admin"`).
+
+### Rate Limiting
+
+The API implements Redis-based rate limiting with configurable limits per endpoint type and user role exemptions for admins.
 
 ## API Documentation
 
