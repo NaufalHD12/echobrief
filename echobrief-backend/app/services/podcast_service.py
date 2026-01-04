@@ -5,7 +5,8 @@ from typing import Optional, Sequence
 from uuid import UUID
 
 from fastapi import HTTPException
-from openai import OpenAI
+from fastapi import HTTPException
+from openai import AsyncOpenAI
 from sqlalchemy import func
 from sqlmodel import delete, desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -34,7 +35,7 @@ class PodcastService:
         self.session = session  # Fixed typo: sesssion -> session
         self.article_service = ArticleService(session)
         self.tts_service = TTSService(session)
-        self.openai_client = OpenAI(
+        self.openai_client = AsyncOpenAI(
             api_key=settings.DEEPSEEK_API_KEY, base_url=settings.DEEPSEEK_BASE_URL
         )
 
@@ -127,7 +128,7 @@ class PodcastService:
         """
 
         try:
-            response = self.openai_client.chat.completions.create(
+            response = await self.openai_client.chat.completions.create(
                 model="deepseek-chat",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=2000,

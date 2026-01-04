@@ -3,7 +3,7 @@ import tempfile
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import get_current_user
@@ -69,8 +69,8 @@ async def update_current_user_profile(
 
 @router.post("/onboarding", response_model=ApiResponse[OnboardingResponse])
 async def complete_user_onboarding(
-    plan_type: str,
-    topic_ids: str,  # Comma-separated string of topic IDs (e.g., "1,2,3")
+    plan_type: Annotated[str, Form()],
+    topic_ids: Annotated[str, Form()],  # Comma-separated string of topic IDs (e.g., "1,2,3")
     avatar: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service),

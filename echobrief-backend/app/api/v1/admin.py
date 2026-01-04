@@ -94,9 +94,16 @@ async def get_users(
     users, total = await user_service.get_all_users(
         search=search, skip=skip, limit=per_page
     )
+    users_with_avatars = []
+    for user in users:
+        avatar_url = await user_service.get_user_avatar_url(user.id)
+        user_dict = user.model_dump()
+        user_dict["avatar_url"] = avatar_url
+        users_with_avatars.append(UserResponse(**user_dict))
+
     return ApiResponse(
         message=f"Users retrieved successfully ({total} total)",
-        data=[UserResponse(**user.model_dump()) for user in users],
+        data=users_with_avatars,
     )
 
 
@@ -123,9 +130,13 @@ async def update_user(
         raise HTTPException(status_code=400, detail="Invalid user ID format")
 
     updated_user = await user_service.update_user_admin(user_uuid, user_data)
+    avatar_url = await user_service.get_user_avatar_url(updated_user.id)
+    user_dict = updated_user.model_dump()
+    user_dict["avatar_url"] = avatar_url
+    
     return ApiResponse(
         message="User updated successfully",
-        data=UserResponse(**updated_user.model_dump()),
+        data=UserResponse(**user_dict),
     )
 
 

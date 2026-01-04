@@ -13,6 +13,7 @@ from ...schemas.podcasts import PodcastResponse
 from ...schemas.topics import TopicResponse
 from ...schemas.users import UserResponse
 from ...services.dashboard_service import DashboardService
+from ...services.user_service import UserService
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -41,8 +42,13 @@ async def get_dashboard(
     dashboard_data = await service.get_user_dashboard_data(current_user.id)
 
     # Convert model objects to response schemas
+    user_service = UserService(service.session)
+    avatar_url = await user_service.get_user_avatar_url(current_user.id)
+    user_dict = dashboard_data["user"].model_dump()
+    user_dict["avatar_url"] = avatar_url
+
     response_data = DashboardResponse(
-        user=UserResponse(**dashboard_data["user"].model_dump()),
+        user=UserResponse(**user_dict),
         stats=dashboard_data["stats"],
         recent_podcasts=[
             PodcastResponse(
