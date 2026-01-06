@@ -70,7 +70,9 @@ async def update_current_user_profile(
 @router.post("/onboarding", response_model=ApiResponse[OnboardingResponse])
 async def complete_user_onboarding(
     plan_type: Annotated[str, Form()],
-    topic_ids: Annotated[str, Form()],  # Comma-separated string of topic IDs (e.g., "1,2,3")
+    topic_ids: Annotated[
+        str, Form()
+    ],  # Comma-separated string of topic IDs (e.g., "1,2,3")
     avatar: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service),
@@ -186,7 +188,10 @@ async def get_user_topics(
     topics = await user_service.get_user_topics(current_user.id)
     return ApiResponse(
         message="Topics retrieved successfully",
-        data=[TopicResponse(**topic.model_dump()) for topic in topics],
+        data=[
+            TopicResponse(**(topic.model_dump() if hasattr(topic, "model_dump") else topic))
+            for topic in topics
+        ],
     )
 
 

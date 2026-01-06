@@ -3,7 +3,9 @@ from celery.schedules import crontab
 
 from .config import settings
 
-celery_app = Celery("echobrief", broker=settings.REDIS_URL, backend=settings.REDIS_URL)
+celery_app = Celery(
+    "echobrief", broker=settings.RABBITMQ_URL, backend=settings.REDIS_URL
+)
 
 celery_app.conf.update(
     task_serializer="json",

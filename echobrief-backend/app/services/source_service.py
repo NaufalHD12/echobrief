@@ -6,12 +6,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..models.sources import Source
 from ..schemas.sources import SourceCreate, SourceUpdate
+from ..core.cache import maintain_cache
+from ..core.redis import redis_client
 
 
 class SourceService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    @maintain_cache(prefix="sources", ttl=3600)
     async def get_sources(
         self, skip: int = 0, limit: int = 10
     ) -> tuple[Sequence[Source], int]:
@@ -34,6 +37,7 @@ class SourceService:
             raise HTTPException(status_code=404, detail="Source not found")
         return source
 
+    @maintain_cache(prefix="sources", ttl=3600)
     async def get_active_sources(self) -> Sequence[Source]:
         """Get active sources"""
         query = select(Source).where(Source.is_active)
@@ -58,6 +62,7 @@ class SourceService:
         self.session.add(source)
         await self.session.commit()
         await self.session.refresh(source)
+        await redis_client.delete_pattern("sources:*")
         return source
 
     async def create_sources_bulk(
@@ -94,6 +99,7 @@ class SourceService:
             # Refresh all created sources
             for source in created_sources:
                 await self.session.refresh(source)
+            await redis_client.delete_pattern("sources:*")
 
         if errors:
             # If there were errors but some sources were created, we still commit
@@ -123,6 +129,7 @@ class SourceService:
         self.session.add(source)
         await self.session.commit()
         await self.session.refresh(source)
+        await redis_client.delete_pattern("sources:*")
         return source
 
     async def delete_source(self, source_id: int) -> None:
@@ -130,3 +137,4 @@ class SourceService:
         source = await self.get_source_by_id(source_id)
         await self.session.delete(source)
         await self.session.commit()
+        await redis_client.delete_pattern("sources:*")

@@ -8,12 +8,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..models.topics import Topic
 from ..schemas.topics import TopicCreate, TopicUpdate
+from ..core.cache import maintain_cache
+from ..core.redis import redis_client
 
 
 class TopicService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    @maintain_cache(prefix="topics", ttl=3600)
     async def get_topics(
         self, skip: int = 0, limit: int = 10, search: str | None = None
     ) -> tuple[Sequence[Topic], int]:
@@ -70,6 +73,7 @@ class TopicService:
         self.session.add(topic)
         await self.session.commit()
         await self.session.refresh(topic)
+        await redis_client.delete_pattern("topics:*")
         return topic
 
     async def create_topics_bulk(self, topics_data: list[TopicCreate]) -> list[Topic]:
@@ -105,6 +109,7 @@ class TopicService:
             # Refresh all created topics
             for topic in created_topics:
                 await self.session.refresh(topic)
+            await redis_client.delete_pattern("topics:*")
 
         if errors:
             # If there were errors but some topics were created, we still commit
@@ -133,6 +138,7 @@ class TopicService:
         self.session.add(topic)
         await self.session.commit()
         await self.session.refresh(topic)
+        await redis_client.delete_pattern("topics:*")
         return topic
 
     async def delete_topic(self, topic_id: int) -> None:
@@ -140,3 +146,4 @@ class TopicService:
         topic = await self.get_topic_by_id(topic_id)
         await self.session.delete(topic)
         await self.session.commit()
+        await redis_client.delete_pattern("topics:*")

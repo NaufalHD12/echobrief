@@ -46,7 +46,10 @@ async def get_sources(
     return ApiResponse(
         message="Sources retrieved successfully",
         data=SourceListResponse(
-            items=[SourceResponse(**source.model_dump()) for source in sources],
+            items=[
+                SourceResponse(**(source.model_dump() if hasattr(source, "model_dump") else source))
+                for source in sources
+            ],
             total=total,
             page=page,
             per_page=per_page,

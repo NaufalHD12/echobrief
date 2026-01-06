@@ -9,6 +9,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..models.subscriptions import SubscriptionStatus, UserSubscription
 from ..models.users import PlanType, User
+from ..core.cache import maintain_cache
+from ..core.redis import redis_client
 
 
 class SubscriptionService:
@@ -37,6 +39,7 @@ class SubscriptionService:
         self.session.add(subscription)
         await self.session.commit()
         await self.session.refresh(subscription)
+        await redis_client.delete(f"user_plan:{user_id}")
         return subscription
 
     async def get_subscription_by_id(
@@ -85,6 +88,8 @@ class SubscriptionService:
         )
 
         return subscription
+        
+        await redis_client.delete(f"user_plan:{subscription.user_id}")
 
     async def expire_subscription(self, subscription_id: str) -> UserSubscription:
         """Mark subscription as expired"""
@@ -105,6 +110,8 @@ class SubscriptionService:
         logger.info(f"Expired subscription: {subscription_id}, end_date={now}")
 
         return subscription
+        
+        await redis_client.delete(f"user_plan:{subscription.user_id}")
 
     async def check_and_update_expired_subscriptions(
         self,
@@ -139,6 +146,8 @@ class SubscriptionService:
                 if user:
                     user.plan_type = PlanType.FREE.value
                     self.session.add(user)
+                    
+                    await redis_client.delete(f"user_plan:{user.id}")
 
             await self.session.commit()
 
@@ -150,6 +159,7 @@ class SubscriptionService:
 
         return expired_subs
 
+    @maintain_cache(prefix="user_plan", ttl=300)
     async def get_user_plan_type(self, user_id: UUID) -> str:
         """Get effective plan type for user (considering active subscription)"""
         user = await self.session.get(User, user_id)
@@ -216,3 +226,5 @@ class SubscriptionService:
             )
 
         return subscription
+        
+        await redis_client.delete(f"user_plan:{user_id}")

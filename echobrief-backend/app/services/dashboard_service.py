@@ -10,12 +10,14 @@ from ..models.sources import Source
 from ..models.topics import Topic
 from ..models.users import User, UserTopic
 from ..schemas.dashboard import DashboardStats, GlobalSearchResult
+from ..core.cache import maintain_cache
 
 
 class DashboardService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    @maintain_cache(prefix="dashboard", ttl=300)
     async def get_user_dashboard_data(self, user_id: UUID) -> dict:
         """Get all dashboard data for a user"""
         user = await self.session.get(User, user_id)
@@ -42,6 +44,7 @@ class DashboardService:
             "favorite_topics": favorite_topics,
         }
 
+    @maintain_cache(prefix="search", ttl=3600)
     async def global_search(
         self, query: str, user_id: UUID, skip: int = 0, limit: int = 20
     ) -> tuple[list[GlobalSearchResult], int]:

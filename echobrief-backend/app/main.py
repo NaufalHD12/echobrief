@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.v1.admin import router as admin_router
@@ -23,10 +23,16 @@ from app.core.middleware import RateLimitMiddleware
 load_dotenv()
 
 
+from app.core.redis import redis_client
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup
+    await redis_client.connect()
     yield
-    # Shutdown (if needed)
+    # Shutdown
+    await redis_client.close()
 
 
 app = FastAPI(

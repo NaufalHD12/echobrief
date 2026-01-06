@@ -5,10 +5,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import get_current_user
 from ...core.database import get_session
+from ...models.podcasts import Podcast
+from ...models.topics import Topic
 from ...models.users import User
 from ...schemas.articles import ArticleResponse
 from ...schemas.common import ApiResponse
-from ...schemas.dashboard import DashboardResponse, GlobalSearchResponse
+from ...schemas.dashboard import DashboardStats, DashboardResponse, GlobalSearchResponse
 from ...schemas.podcasts import PodcastResponse
 from ...schemas.topics import TopicResponse
 from ...schemas.users import UserResponse
@@ -40,11 +42,24 @@ async def get_dashboard(
     - User's favorite topics
     """
     dashboard_data = await service.get_user_dashboard_data(current_user.id)
+    
+    # Normalize data (stats is already dict from service)
+    # Check if user model needs dumping
+    user_obj = dashboard_data["user"]
+    user_dict = user_obj.model_dump() if hasattr(user_obj, "model_dump") else user_obj
+
+    # Normalize list items to objects/dicts as needed
+    recent_podcasts = dashboard_data["recent_podcasts"]
+    recent_articles = dashboard_data["recent_articles"]
+    favorite_topics = dashboard_data["favorite_topics"]
+    
+    # Helper to access attrs/keys
+    def get_val(obj, attr):
+        return getattr(obj, attr) if hasattr(obj, attr) else obj[attr]
 
     # Convert model objects to response schemas
     user_service = UserService(service.session)
     avatar_url = await user_service.get_user_avatar_url(current_user.id)
-    user_dict = dashboard_data["user"].model_dump()
     user_dict["avatar_url"] = avatar_url
 
     response_data = DashboardResponse(
@@ -52,26 +67,26 @@ async def get_dashboard(
         stats=dashboard_data["stats"],
         recent_podcasts=[
             PodcastResponse(
-                id=podcast.id,
-                user_id=podcast.user_id,
-                generated_script=podcast.generated_script,
-                audio_url=podcast.audio_url,
-                duration_seconds=podcast.duration_seconds,
-                status=podcast.status,
-                created_at=podcast.created_at,
+                id=get_val(podcast, "id"),
+                user_id=get_val(podcast, "user_id"),
+                generated_script=get_val(podcast, "generated_script"),
+                audio_url=get_val(podcast, "audio_url"),
+                duration_seconds=get_val(podcast, "duration_seconds"),
+                status=get_val(podcast, "status"),
+                created_at=get_val(podcast, "created_at"),
                 topics=[],  # Will be populated if needed
                 articles=[],
                 segments=[],
             )
-            for podcast in dashboard_data["recent_podcasts"]
+            for podcast in recent_podcasts
         ],
         recent_articles=[
-            ArticleResponse(**article.model_dump())
-            for article in dashboard_data["recent_articles"]
+            ArticleResponse(**(article.model_dump() if hasattr(article, "model_dump") else article))
+            for article in recent_articles
         ],
         favorite_topics=[
-            TopicResponse(**topic.model_dump())
-            for topic in dashboard_data["favorite_topics"]
+            TopicResponse(**(topic.model_dump() if hasattr(topic, "model_dump") else topic))
+            for topic in favorite_topics
         ],
     )
 

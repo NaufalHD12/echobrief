@@ -14,7 +14,10 @@ from ..models.topics import Topic
 from ..models.users import User, UserTopic
 from ..schemas.users import UserCreate, UserUpdate
 from .avatar_service import AvatarService
+from .avatar_service import AvatarService
 from .subscription_service import SubscriptionService
+from ..core.cache import maintain_cache
+from ..core.redis import redis_client
 
 
 class UserService:
@@ -236,6 +239,7 @@ class UserService:
         self.session.add(user)
         await self.session.commit()
 
+    @maintain_cache(prefix="user_topics", ttl=3600)
     async def get_user_topics(self, user_id: UUID) -> Sequence[Topic]:
         """Get topics selected by user"""
         query = select(Topic).join(UserTopic).where(UserTopic.user_id == user_id)
@@ -271,6 +275,7 @@ class UserService:
         user_topic = UserTopic(user_id=user_id, topic_id=topic_id)
         self.session.add(user_topic)
         await self.session.commit()
+        await redis_client.delete(f"user_topics:{user_id}")
 
     async def remove_user_topic(self, user_id: UUID, topic_id: int) -> None:
         """Remove topic from user's selection"""
@@ -284,6 +289,7 @@ class UserService:
 
         await self.session.delete(user_topic)
         await self.session.commit()
+        await redis_client.delete(f"user_topics:{user_id}")
 
     async def get_all_users(
         self, search: str | None = None, skip: int = 0, limit: int = 10
@@ -427,6 +433,7 @@ class UserService:
             selected_topic_ids.append(topic_id)
 
         await self.session.commit()
+        await redis_client.delete(f"user_topics:{user_id}")
 
         # Return payment URL if paid plan was selected
         payment_url = (

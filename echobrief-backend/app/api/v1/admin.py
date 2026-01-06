@@ -133,7 +133,7 @@ async def update_user(
     avatar_url = await user_service.get_user_avatar_url(updated_user.id)
     user_dict = updated_user.model_dump()
     user_dict["avatar_url"] = avatar_url
-    
+
     return ApiResponse(
         message="User updated successfully",
         data=UserResponse(**user_dict),

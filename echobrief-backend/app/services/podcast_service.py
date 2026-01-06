@@ -5,7 +5,6 @@ from typing import Optional, Sequence
 from uuid import UUID
 
 from fastapi import HTTPException
-from fastapi import HTTPException
 from openai import AsyncOpenAI
 from sqlalchemy import func
 from sqlmodel import delete, desc, select
@@ -26,6 +25,8 @@ from ..schemas.podcasts import PodcastCreate
 from .article_service import ArticleService
 from .subscription_service import SubscriptionService
 from .tts_service import TTSService
+from ..core.cache import maintain_cache
+from ..core.redis import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,10 @@ class PodcastService:
             self.session.add(podcast_topic)
 
         await self.session.commit()
+        
+        # Invalidate user's podcast cache
+        await redis_client.delete_pattern(f"podcasts:{user_id}:*")
+        
         return podcast
 
     async def generate_podcast_script(self, podcast_id: UUID) -> str:
@@ -196,9 +201,12 @@ class PodcastService:
                 "duration_seconds": podcast.duration_seconds,
             }
         else:
-            podcast.status = PodcastStatus.failed
             self.session.add(podcast)
             await self.session.commit()
+            
+            # Invalidate cache as status changed
+            await redis_client.delete_pattern(f"podcasts:{podcast.user_id}:*")
+            
             raise HTTPException(status_code=500, detail="Audio generation failed")
 
     async def get_podcast_by_id(self, podcast_id: UUID) -> Optional[Podcast]:
@@ -207,6 +215,7 @@ class PodcastService:
         result = await self.session.exec(query)
         return result.first()
 
+    @maintain_cache(prefix="podcasts", ttl=1800)
     async def get_user_podcasts(
         self, user_id: UUID, skip: int = 0, limit: int = 10, search: str | None = None
     ) -> tuple[Sequence[Podcast], int]:
@@ -323,6 +332,9 @@ class PodcastService:
         await self.session.delete(podcast)
         await self.session.commit()
 
+        # Invalidate user's podcast cache
+        await redis_client.delete_pattern(f"podcasts:{podcast.user_id}:*")
+
         # Optionally delete the audio file if it exists
         if podcast.audio_url:
             try:
@@ -395,3 +407,6 @@ class PodcastService:
             podcast.status = status
             self.session.add(podcast)
             await self.session.commit()
+            
+            # Invalidate cache
+            await redis_client.delete_pattern(f"podcasts:{podcast.user_id}:*")

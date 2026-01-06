@@ -52,7 +52,7 @@ async def register(
         user = await user_service.create_user(user_data)
         avatar_url = await user_service.get_user_avatar_url(user.id)
         user_dict = user.model_dump()
-        user_dict['avatar_url'] = avatar_url
+        user_dict["avatar_url"] = avatar_url
         return ApiResponse(
             message="User registered successfully",
             data=UserResponse(**user_dict),

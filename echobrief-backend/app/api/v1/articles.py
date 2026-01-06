@@ -52,7 +52,10 @@ async def get_articles(
     return ApiResponse(
         message="Articles retrieved successfully",
         data=ArticleListResponse(
-            items=[ArticleResponse(**article.model_dump()) for article in articles],
+            items=[
+                ArticleResponse(**(article.model_dump() if hasattr(article, "model_dump") else article))
+                for article in articles
+            ],
             total=total,
             page=page,
             per_page=per_page,

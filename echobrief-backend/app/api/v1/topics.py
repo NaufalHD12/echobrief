@@ -45,7 +45,10 @@ async def get_topics(
     return ApiResponse(
         message="Topics retrieved successfully",
         data=TopicListResponse(
-            items=[TopicResponse(**topic.model_dump()) for topic in topics],
+            items=[
+                TopicResponse(**(topic.model_dump() if hasattr(topic, "model_dump") else topic))
+                for topic in topics
+            ],
             total=total,
             page=page,
             per_page=per_page,

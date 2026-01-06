@@ -8,7 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...core.auth import get_current_user
 from ...core.database import get_session
-from ...models.podcasts import PodcastStatus, PodcastTopic
+from ...models.podcasts import Podcast, PodcastStatus, PodcastTopic
 from ...models.users import PlanType, User
 from ...schemas.articles import ArticleResponse
 from ...schemas.common import ApiResponse
@@ -63,7 +63,11 @@ async def create_podcast(
                 detail="No topics selected. Please select favorite topics first or provide topic_ids.",
             )
 
-        topic_ids = [topic.id for topic in user_topics if topic.id is not None]
+        # Helper to get ID whether topic is object or dict (from cache)
+        def get_id(t):
+            return t.id if hasattr(t, "id") else t["id"]
+            
+        topic_ids = [get_id(topic) for topic in user_topics if get_id(topic) is not None]
 
     # Create podcast with determined topic_ids
     podcast_create_data = PodcastCreate(topic_ids=topic_ids)
@@ -113,6 +117,11 @@ async def get_podcasts(
     podcasts, total = await service.get_user_podcasts(
         current_user.id, skip=skip, limit=per_page, search=search
     )
+
+    # Ensure podcasts are objects (handle cached dicts)
+    podcasts = [
+        Podcast.model_validate(p) if isinstance(p, dict) else p for p in podcasts
+    ]
 
     podcast_responses = []
     for podcast in podcasts:
@@ -332,7 +341,11 @@ async def quick_generate_podcast(
                 status_code=400,
                 detail="No favorite topics selected. Please select topics first.",
             )
-        topic_ids = [topic.id for topic in user_topics if topic.id is not None]
+        # Helper to get ID whether topic is object or dict (from cache)
+        def get_id(t):
+            return t.id if hasattr(t, "id") else t["id"]
+
+        topic_ids = [get_id(topic) for topic in user_topics if get_id(topic) is not None]
 
     # Check cache first if enabled
     if request_data.use_cached:

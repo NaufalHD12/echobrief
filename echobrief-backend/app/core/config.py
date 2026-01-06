@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
 
+    RABBITMQ_HOST: str = ""
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = ""
+    RABBITMQ_PASS: str = ""
+
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = ""
 
@@ -30,7 +35,6 @@ class Settings(BaseSettings):
 
     PAYMENT_PLAN_MONTHLY_PRICE: float = 5.00
 
-    # Email configuration
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
@@ -53,6 +57,10 @@ class Settings(BaseSettings):
     @computed_field
     def REDIS_URL(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+    @computed_field
+    def RABBITMQ_URL(self) -> str:
+        return f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASS}@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}//"
 
 
 settings = Settings()

@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from sqlmodel import desc, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ..core.cache import maintain_cache
+from ..core.redis import redis_client
 from ..models.articles import Article
 from ..models.sources import Source
 from ..models.topics import Topic
@@ -14,6 +16,7 @@ class ArticleService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    @maintain_cache(prefix="articles", ttl=300)
     async def get_articles(
         self,
         skip: int = 0,
@@ -78,6 +81,7 @@ class ArticleService:
         self.session.add(article)
         await self.session.commit()
         await self.session.refresh(article)
+        await redis_client.delete_pattern("articles:*")
         return article
 
     async def update_article(
@@ -117,6 +121,7 @@ class ArticleService:
         self.session.add(article)
         await self.session.commit()
         await self.session.refresh(article)
+        await redis_client.delete_pattern("articles:*")
         return article
 
     async def delete_article(self, article_id: int) -> None:
@@ -124,3 +129,4 @@ class ArticleService:
         article = await self.get_article_by_id(article_id)
         await self.session.delete(article)
         await self.session.commit()
+        await redis_client.delete_pattern("articles:*")

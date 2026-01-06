@@ -37,7 +37,7 @@ class AvatarService:
         # Create SVG
         svg = f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="50" cy="50" r="50" fill="hsl({hue}, 70%, 50%)"/>
+  <rect x="2" y="2" width="96" height="96" fill="hsl({hue}, 70%, 50%)" stroke="black" stroke-width="4"/>
   <text x="50" y="65" font-family="Arial, sans-serif" font-size="40" font-weight="bold"
         text-anchor="middle" fill="white">{initial}</text>
 </svg>"""
