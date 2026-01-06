@@ -11,6 +11,7 @@ const brutalBadgeVariants = cva(
         secondary: "bg-secondary text-secondary-foreground",
         accent: "bg-accent text-accent-foreground",
         success: "bg-success text-success-foreground",
+        destructive: "bg-destructive text-destructive-foreground",
         outline: "bg-background text-foreground",
       },
       size: {

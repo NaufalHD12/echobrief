@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { BrutalButton } from "@/components/ui/brutal-button";
 import { BrutalCard } from "@/components/ui/brutal-card";
 import { BrutalBadge } from "@/components/ui/brutal-badge";
@@ -67,7 +68,7 @@ const Podcasts = () => {
         }
       }
       
-      const params: any = { page: pageNum, per_page: pageSize };
+      const params: Record<string, string | number> = { page: pageNum, per_page: pageSize };
       if (debouncedSearch) params.search = debouncedSearch;
 
       const response = await api.get<{ data: { items: PodcastType[]; total: number } }>("/podcasts/", { params });
@@ -182,9 +183,13 @@ const Podcasts = () => {
       // Refresh list to show new pending podcast
       await fetchPodcasts();
       toast.success(response.data.message || "Podcast creation started!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to create podcast:", error);
-      toast.error(error.response?.data?.detail || "Failed to create podcast. Please try again.");
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else {
+        toast.error("Failed to create podcast. Please try again.");
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -308,7 +313,7 @@ const Podcasts = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-bold text-lg truncate">{podcast.status === 'processing' ? 'Generating Podcast...' : `Podcast ${new Date(podcast.created_at).toLocaleDateString()}`}</h3>
-                      <BrutalBadge variant={getStatusBadgeVariant(podcast.status) as any} size="sm" className="capitalize">
+                      <BrutalBadge variant={getStatusBadgeVariant(podcast.status) as "default" | "secondary" | "accent" | "success" | "outline" | "destructive"} size="sm" className="capitalize">
                         {podcast.status}
                       </BrutalBadge>
                     </div>

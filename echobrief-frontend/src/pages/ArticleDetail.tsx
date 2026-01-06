@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { useParams, Link } from "react-router-dom";
 import { BrutalButton } from "@/components/ui/brutal-button";
 import { BrutalCard } from "@/components/ui/brutal-card";
@@ -57,9 +58,13 @@ const ArticleDetail = () => {
 
         if (topicRes) setTopic(topicRes.data.data);
         if (sourceRes) setSource(sourceRes.data.data);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to fetch article:", err);
-        setError(err.response?.data?.detail || "Failed to load article");
+        if (axios.isAxiosError(err) && err.response?.data?.detail) {
+          setError(err.response.data.detail);
+        } else {
+          setError("Failed to load article");
+        }
       } finally {
         setIsLoading(false);
       }

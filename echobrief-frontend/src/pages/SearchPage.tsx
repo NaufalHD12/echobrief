@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { BrutalCard } from "@/components/ui/brutal-card";
 import { BrutalBadge } from "@/components/ui/brutal-badge";
 import { BrutalInputField } from "@/components/ui/brutal-input-field";
@@ -131,13 +132,13 @@ const SearchPage = () => {
                   <div className="space-y-3">
                     {(activeTab === 'article' ? filteredResults : articles).map((result) => (
                       <BrutalCard key={`${result.type}-${result.id}`} padding="sm" className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <a href={result.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between">
+                        <Link to={`/articles/${result.id}`} className="flex items-center justify-between">
                           <div>
                             <p className="font-bold">{result.title}</p>
                             {result.description && <p className="text-sm text-muted-foreground">{result.description}</p>}
                           </div>
                           <ArrowRight className="w-5 h-5 opacity-50" />
-                        </a>
+                        </Link>
                       </BrutalCard>
                     ))}
                   </div>
@@ -154,12 +155,11 @@ const SearchPage = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(activeTab === 'topic' ? filteredResults : topics).map((result) => (
-                      <BrutalCard key={`${result.type}-${result.id}`} padding="sm" className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <BrutalCard key={`${result.type}-${result.id}`} padding="sm">
                          <div className="flex items-center justify-between">
                           <div>
                             <p className="font-bold">{result.title}</p>
                           </div>
-                          <ArrowRight className="w-5 h-5 opacity-50" />
                         </div>
                       </BrutalCard>
                     ))}
@@ -177,12 +177,11 @@ const SearchPage = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(activeTab === 'source' ? filteredResults : sources).map((result) => (
-                      <BrutalCard key={`${result.type}-${result.id}`} padding="sm" className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <BrutalCard key={`${result.type}-${result.id}`} padding="sm">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-bold">{result.title}</p>
                           </div>
-                          <ArrowRight className="w-5 h-5 opacity-50" />
                         </div>
                       </BrutalCard>
                     ))}

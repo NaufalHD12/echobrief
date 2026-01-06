@@ -60,7 +60,7 @@ const Articles = () => {
         setIsLoading(true);
       }
       
-      const params: any = { page: pageNum, per_page: pageSize };
+      const params: Record<string, string | number> = { page: pageNum, per_page: pageSize };
       if (selectedTopicId) params.topic_id = selectedTopicId;
       if (debouncedSearch) params.search = debouncedSearch;
 

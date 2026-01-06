@@ -123,26 +123,28 @@ const Dashboard = () => {
               <p className="text-muted-foreground text-center py-4">No podcasts yet. Generate one!</p>
             ) : (
               data?.recent_podcasts.map((podcast) => (
-                <div key={podcast.id} className="flex items-center gap-4 p-3 bg-muted border-[2px] border-foreground hover:bg-muted/50 transition-colors">
-                  <button className="w-10 h-10 bg-primary border-[2px] border-foreground flex items-center justify-center flex-shrink-0 hover:shadow-brutal transition-all">
-                    <Play className="w-4 h-4 ml-0.5" />
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold truncate">Podcast from {new Date(podcast.created_at).toLocaleDateString()}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{Math.floor(podcast.duration_seconds / 60)}:{(podcast.duration_seconds % 60).toString().padStart(2, '0')}</span>
-                      <span>•</span>
-                      <span className="capitalize">{podcast.status}</span>
+                <Link to="/podcasts" key={podcast.id} className="block">
+                  <div className="flex items-center gap-4 p-3 bg-muted border-[2px] border-foreground hover:bg-muted/50 transition-colors">
+                    <button className="w-10 h-10 bg-primary border-[2px] border-foreground flex items-center justify-center flex-shrink-0 hover:shadow-brutal transition-all">
+                      <Play className="w-4 h-4 ml-0.5" />
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold truncate">Podcast from {new Date(podcast.created_at).toLocaleDateString()}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{Math.floor(podcast.duration_seconds / 60)}:{(podcast.duration_seconds % 60).toString().padStart(2, '0')}</span>
+                        <span>•</span>
+                        <span className="capitalize">{podcast.status}</span>
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex gap-1">
+                      {podcast.topics.slice(0, 2).map((topic) => (
+                        <BrutalBadge key={topic.id} variant="outline" size="sm">
+                          {topic.name}
+                        </BrutalBadge>
+                      ))}
                     </div>
                   </div>
-                  <div className="hidden sm:flex gap-1">
-                    {podcast.topics.slice(0, 2).map((topic) => (
-                      <BrutalBadge key={topic.id} variant="outline" size="sm">
-                        {topic.name}
-                      </BrutalBadge>
-                    ))}
-                  </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
@@ -161,14 +163,14 @@ const Dashboard = () => {
               <p className="text-muted-foreground text-center py-4">No articles found.</p>
             ) : (
               data?.recent_articles.map((article) => (
-                <a key={article.id} href={article.url} target="_blank" rel="noopener noreferrer" className="block p-3 bg-muted border-[2px] border-foreground hover:bg-muted/50 transition-colors cursor-pointer">
+                <Link key={article.id} to={`/articles/${article.id}`} className="block p-3 bg-muted border-[2px] border-foreground hover:bg-muted/50 transition-colors cursor-pointer">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm leading-tight mb-1">{article.title}</p>
                       <p className="text-xs text-muted-foreground">{new Date(article.published_at).toLocaleDateString()}</p>
                     </div>
                   </div>
-                </a>
+                </Link>
               ))
             )}
           </div>

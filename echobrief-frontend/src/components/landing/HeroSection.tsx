@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { BrutalButton } from "@/components/ui/brutal-button";
 import { BrutalBadge } from "@/components/ui/brutal-badge";
-import { Play, Zap, Headphones, Rocket } from "lucide-react";
+import { Play, Zap, Headphones } from "lucide-react";
 
 export const HeroSection = () => {
   return (

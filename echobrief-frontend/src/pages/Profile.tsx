@@ -1,3 +1,5 @@
+import axios, { AxiosError } from "axios";
+
 import { useState, useEffect, useRef } from "react";
 import { BrutalButton } from "@/components/ui/brutal-button";
 import { BrutalCard } from "@/components/ui/brutal-card";
@@ -9,7 +11,6 @@ import {
   Camera,
   Save,
   Plus,
-  Trash2,
   Crown,
   Loader2,
   X
@@ -52,7 +53,6 @@ const Profile = () => {
     };
     fetchData();
   }, []);
-
   const handleSaveProfile = async () => {
     if (!username.trim()) return;
     try {
@@ -60,9 +60,13 @@ const Profile = () => {
       const response = await api.put<{ message: string }>("/users/me", { username });
       await refreshUser();
       toast.success(response.data.message || "Profile updated successfully!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to update profile:", error);
-      toast.error(error.response?.data?.detail || "Failed to update profile.");
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else {
+        toast.error("Failed to update profile.");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -82,18 +86,21 @@ const Profile = () => {
       }
       setSelectedTopics([...selectedTopics, topic]);
     }
-
     try {
       if (isSelected) {
         await api.delete(`/users/topics/${topic.id}`);
       } else {
         await api.post("/users/topics", null, { params: { topic_id: topic.id } });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to toggle topic:", error);
       // Revert on error
       setSelectedTopics(originalTopics);
-      toast.error(error.response?.data?.detail || "Failed to update topic preference.");
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else {
+        toast.error("Failed to update topic preference.");
+      }
     }
   };
 
@@ -103,16 +110,20 @@ const Profile = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-
+    // ... existing logic
     try {
       setIsUploading(true);
       await api.post("/users/me/avatar", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       await refreshUser();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to upload avatar:", error);
-      toast.error(error.response?.data?.detail || "Failed to upload avatar.");
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+         toast.error(error.response.data.detail);
+      } else {
+         toast.error("Failed to upload avatar.");
+      }
     } finally {
       setIsUploading(false);
     }
@@ -124,9 +135,13 @@ const Profile = () => {
       await api.delete("/users/me/avatar");
       await refreshUser();
       toast.success("Avatar deleted successfully!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to delete avatar:", error);
-      toast.error(error.response?.data?.detail || "Failed to delete avatar.");
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+         toast.error(error.response.data.detail);
+      } else {
+         toast.error("Failed to delete avatar.");
+      }
     } finally {
       setIsDeleting(false);
     }

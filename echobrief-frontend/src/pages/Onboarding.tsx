@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { BrutalButton } from "@/components/ui/brutal-button";
 import { BrutalCard } from "@/components/ui/brutal-card";
@@ -24,7 +25,8 @@ import {
   Heart,
   Landmark,
   PartyPopper,
-  Loader2     // Added loader
+  Loader2,     // Added loader
+  LucideIcon
 } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,7 +34,7 @@ import { Topic } from "@/types/api";
 
 // Mapping for icons based on slug or name
 const getTopicIcon = (slug: string) => {
-  const map: Record<string, any> = {
+  const map: Record<string, LucideIcon> = {
     tech: Laptop,
     ai: Bot,
     business: Briefcase,
@@ -110,9 +112,13 @@ const Onboarding = () => {
       } else {
         navigate("/dashboard");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Onboarding failed:", error);
-      toast.error(error.response?.data?.detail || "Failed to complete onboarding. Please try again.");
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else {
+        toast.error("Failed to complete onboarding. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
