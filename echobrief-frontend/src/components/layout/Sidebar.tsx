@@ -9,7 +9,8 @@ import {
   Search, 
   User as UserIcon, 
   LogOut,
-  Loader2
+  Loader2,
+  Settings
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -69,6 +70,21 @@ export const Sidebar = ({ open }: SidebarProps) => {
               </Link>
             );
           })}
+
+          {/* Admin Link - Only visible to admins */}
+          {user?.role === "admin" && (
+            <Link 
+              to="/admin" 
+              className={`flex items-center gap-3 px-4 py-3 border-[2px] transition-all font-medium ${
+                location.pathname === "/admin" 
+                  ? "bg-accent border-foreground shadow-brutal font-bold" 
+                  : "hover:bg-muted border-transparent hover:border-foreground"
+              }`}
+            >
+              <Settings className="w-5 h-5" />
+              Admin
+            </Link>
+          )}
         </nav>
       </div>
 

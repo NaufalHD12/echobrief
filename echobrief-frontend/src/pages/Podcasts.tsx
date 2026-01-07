@@ -113,7 +113,7 @@ const Podcasts = () => {
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [podcasts, page]);
+  }, [podcasts, page, pageSize, debouncedSearch]);
 
   const handleLoadMore = () => {
     fetchPodcasts(page + 1, true);

@@ -3,6 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.127+-green.svg)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3.13+-orange.svg)](https://www.rabbitmq.com/)
 [![Redis](https://img.shields.io/badge/Redis-7+-red.svg)](https://redis.io/)
 
 EchoBrief is a comprehensive backend API built with FastAPI that transforms news articles into engaging podcast audio content. The system automatically aggregates news from RSS feeds, generates AI-powered summaries, creates podcast scripts, and converts them to audio using advanced Text-to-Speech technology.
@@ -75,7 +76,8 @@ EchoBrief revolutionizes news consumption by converting traditional text-based a
 ### Core Technologies
 - **Backend Framework**: [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework for Python
 - **Database**: [PostgreSQL 15](https://www.postgresql.org/) with [AsyncPG](https://github.com/MagicStack/asyncpg) driver
-- **Cache/Queue**: [Redis 7+](https://redis.io/) for caching and task queuing
+- **Message Broker**: [RabbitMQ 3.13+](https://www.rabbitmq.com/) for reliable task queuing
+- **Cache**: [Redis 7+](https://redis.io/) for caching and rate limiting
 - **ORM**: [SQLModel](https://sqlmodel.tiangolo.com/) - SQL databases in Python, designed for FastAPI
 
 ### AI & Media Processing
@@ -84,7 +86,7 @@ EchoBrief revolutionizes news consumption by converting traditional text-based a
 - **Image Processing**: [Pillow](https://python-pillow.org/) for avatar image handling
 
 ### Background Processing
-- **Task Queue**: [Celery](https://docs.celeryq.dev/) with Redis broker
+- **Task Queue**: [Celery](https://docs.celeryq.dev/) with RabbitMQ broker
 - **Email Service**: SMTP integration with [Jinja2](https://jinja.palletsprojects.com/) templates
 
 ### Authentication & Security

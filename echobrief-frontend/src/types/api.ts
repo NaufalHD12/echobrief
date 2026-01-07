@@ -118,3 +118,9 @@ export interface OnboardingRequest {
   topic_ids: string; // comma separated
   avatar?: File;
 }
+
+export interface Source {
+  id: number;
+  name: string;
+  base_url: string;
+}
